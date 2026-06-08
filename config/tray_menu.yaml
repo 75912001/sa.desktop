@@ -84,6 +84,10 @@ menu:
     - id: reset_position
       visible: true
       label: 重置位置
+    # 打开选项标签对话框.
+    - id: options
+      visible: true
+      label: 选项...
     # 退出程序.
     - id: quit
       visible: true
