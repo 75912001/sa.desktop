@@ -3,7 +3,7 @@
 
 # character.isRole: 是否为玩家角色 (布尔值, 默认false)
 # character.color: 角色颜色
-# sprite: 中包含的动作文件信息（序号对应的 .tres 固定为 res://Asset/Character/{id}.sprites/，代码写死，无需配置）
+# sprite: 中包含的动作文件信息
 
 # 角色 [1000001,1999999]
 character:
