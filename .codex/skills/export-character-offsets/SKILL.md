@@ -34,13 +34,14 @@ python .codex/skills/export-character-offsets/scripts/export_character_offsets.p
 
 - Input filenames must match `偏移信息{characterid}.txt`.
 - Output files must be named `{characterid}.offsets.json` under `assets/character`.
+- Output JSON is a root-level frame-id map, for example `{ "10817": {"x": -21, "y": -57} }`.
 - Map offset rows to numeric frame ids from `{characterid}.tpsheet` sorted ascending.
 - Supplemental files named like `偏移信息(代表126235,126236,126237,126238 这四个图片, 是 1000063 的一部分).txt` are combined with the standard source file.
 - Fail a character if offset row count differs from `.tpsheet` frame count.
 - For supplemental files, map rows to the frame ids listed in the filename, and map the main file to the remaining sorted frame ids.
 - Skip and report characters that do not have both source offsets and `.tpsheet`.
 - Do not overwrite an existing offsets JSON unless explicitly requested with `--overwrite`.
-- Do not write local absolute source paths into JSON; store only the source filename.
+- Do not write source metadata into JSON; trace sources from file names and export logs.
 - Do not modify `config/character.yaml`, `project.godot`, `.godot/`, PNG files, `.tpsheet`, or plugin files.
 
 ## Validation

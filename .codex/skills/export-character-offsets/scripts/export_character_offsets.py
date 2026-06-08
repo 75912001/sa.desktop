@@ -100,29 +100,22 @@ def discover_tpsheets(asset_dir: Path) -> dict[str, Path]:
     }
 
 
-def build_payload(
-    character_id: str,
-    source_file: Path,
-    frame_ids: list[int],
-    offsets: list[dict[str, int]],
-    supplemental_source_files: list[Path] | None = None,
-) -> dict:
-    payload = {
-        "character_id": int(character_id),
-        "source_file": source_file.name,
-        "first_frame_id": frame_ids[0],
-        "frame_count": len(frame_ids),
-        "offsets": {
-            str(frame_id): offset
-            for frame_id, offset in zip(frame_ids, offsets)
-        },
+def build_payload(frame_ids: list[int], offsets: list[dict[str, int]]) -> dict[str, dict[str, int]]:
+    return {
+        str(frame_id): offset
+        for frame_id, offset in zip(frame_ids, offsets)
     }
-    if supplemental_source_files:
-        payload["supplemental_source_files"] = [
-            path.name
-            for path in supplemental_source_files
-        ]
-    return payload
+
+
+def format_payload(payload: dict[str, dict[str, int]]) -> str:
+    frame_keys = sorted(payload.keys(), key=int)
+    lines = ["{"]
+    for index, frame_key in enumerate(frame_keys):
+        comma = "," if index < len(frame_keys) - 1 else ""
+        offset_text = json.dumps(payload[frame_key], ensure_ascii=False, separators=(", ", ": "))
+        lines.append(f'  "{frame_key}": {offset_text}{comma}')
+    lines.append("}")
+    return "\n".join(lines) + "\n"
 
 
 def combine_offsets(
@@ -211,7 +204,7 @@ def export_one(
 
     frame_ids = load_sorted_frame_ids(tpsheet_path)
     try:
-        combined_frame_ids, offsets, supplemental_source_files, detail = combine_offsets(
+        combined_frame_ids, offsets, _supplemental_source_files, detail = combine_offsets(
             character_id,
             source_file,
             frame_ids,
@@ -232,17 +225,8 @@ def export_one(
     if dry_run:
         return True
 
-    payload = build_payload(
-        character_id,
-        source_file,
-        combined_frame_ids,
-        offsets,
-        supplemental_source_files,
-    )
-    output_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    payload = build_payload(combined_frame_ids, offsets)
+    output_path.write_text(format_payload(payload), encoding="utf-8")
     return True
 
 
