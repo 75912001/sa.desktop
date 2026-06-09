@@ -1,6 +1,8 @@
 class_name ConfigManager
 extends RefCounted
 
+# 配置总入口是 RefCounted, 不是 Node.
+# 它不会被 Godot 场景树自动调用 _ready(), 只有业务代码主动调用 ConfigManager.get_shared() 时才会创建和加载.
 const ConstantsScript := preload("res://scripts/common/constants.gd")
 
 # 保存整个运行期间共享的配置管理器实例.
@@ -23,12 +25,12 @@ func _init() -> void:
 # 1. 业务代码调用 ConfigManager.get_shared().
 # 2. 如果还没有共享实例, 这里执行 ConfigManager.new().
 # 3. new() 会自动触发 _init(), 先创建 pet/character/enemy_group 三个子管理器.
-# 4. 回到 get_shared(), 再调用 load_all_cfg() 统一加载、校验和组装配置.
+# 4. 回到 get_shared(), 再调用内部的 _load_all_cfg() 统一加载、校验和组装配置.
 # 5. 返回已经准备好的共享管理器; 后续 get_shared() 直接返回缓存实例.
 static func get_shared() -> ConfigManager:
 	if _shared_manager == null:
 		_shared_manager = ConfigManager.new()
-		_shared_manager.load_all_cfg()
+		_shared_manager._load_all_cfg()
 	return _shared_manager
 
 # 统一 YAML 读取入口, 由各配置类的 load(path) 调用.
@@ -65,25 +67,32 @@ static func load_yaml(path: String) -> Dictionary:
 	return data
 
 # 管理规则统一加载所有配置.
+# 这是 ConfigManager 内部流程, 外部代码应该只通过 get_shared() 获取已经加载好的共享实例.
 # 顺序固定为 load -> check -> assemble:
 # load: 读取 YAML 并建立基础缓存和 ID 索引.
 # check: 做跨字段或跨配置的校验, 当前先保留入口.
 # assemble: 做加载后的组装或预处理, 当前先保留入口.
-func load_all_cfg() -> void:
+func _load_all_cfg() -> void:
+	# 第一阶段只读取配置源文件并建立各自的基础缓存.
+	# 这个阶段不要做依赖其它配置的组装, 避免读取顺序互相影响.
 	pet_config.load(ConstantsScript.PET_CONFIG_PATH)
 	character_config.load(ConstantsScript.CHARACTER_CONFIG_PATH)
 	enemy_group_config.load(ConstantsScript.ENEMY_GROUP_CONFIG_PATH)
 
+	# 第二阶段做校验.
+	# 这里所有配置都已经完成 load, 后续如果要做跨配置检查, 可以放在这个阶段.
 	pet_config.check()
 	character_config.check()
 	enemy_group_config.check()
 
+	# 第三阶段做组装.
+	# 这里适合生成派生缓存或跨配置引用, 当前各配置类先保留入口.
 	pet_config.assemble()
 	character_config.assemble()
 	enemy_group_config.assemble()
 
 # 创建具体配置管理器实例.
-# 这里只创建空对象, 不读取文件; 真正读取发生在 get_shared() 调用的 load_all_cfg() 中.
+# 这里只创建空对象, 不读取文件; 真正读取发生在 get_shared() 调用的 _load_all_cfg() 中.
 func _create_managers() -> void:
 	pet_config = PetConfig.new()
 	character_config = CharacterConfig.new()
