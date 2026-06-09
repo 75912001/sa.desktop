@@ -46,6 +46,11 @@ menu:
         - id: action
           visible: true
           label: 动作
+    # 挂机战斗模式切换. 普通模式显示 label_start, 战斗模式显示 label_return.
+    - id: battle
+      visible: true
+      label_start: 开始挂机战斗
+      label_return: 返回桌宠
     # 缩放菜单入口. options 中 label 是显示文案, value 是实际缩放比例.
     - id: scale
       visible: true
