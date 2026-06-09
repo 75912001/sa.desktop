@@ -4,96 +4,100 @@
 menu:
   # 菜单文字字号. 菜单宽度和高度会按字号和文本内容自动计算.
   font_size: 18
+  # 桌宠动画构建动作白名单. 托盘动作菜单只展示这里与当前宠物资源共同存在的动作.
+  pet_actions: [attack, faint, hurt, defense, stand, walk, attackShort]
+  # 桌宠动画构建方向白名单. 顺序也会影响托盘动作子菜单里的方向显示顺序.
+  pet_directions: [down, downleft, left, upleft, up, upright, right, downright]
   # 菜单颜色使用 #RRGGBB 或 #RRGGBBAA. AA 为透明度, FF 表示完全不透明.
   colors:
-    # 菜单面板背景色.
-    panel: "#FAFAFA"
-    # 菜单窗口边框颜色.
-    border: "#858F9FFF"
-    # 普通菜单项文字颜色.
-    text: "#0D0F14FF"
-    # 鼠标悬浮或保持高亮时的文字颜色.
-    hover_text: "#FFFFFFFF"
-    # 鼠标悬浮或子菜单入口保持高亮时的背景色.
-    highlight: "#1A61D1FF"
-    # 菜单项按下时的背景色.
-    pressed: "#1247A3FF"
-    # 禁用菜单项文字颜色.
-    disabled_text: "#949BA8FF"
+	# 菜单面板背景色.
+	panel: "#FAFAFA"
+	# 菜单窗口边框颜色.
+	border: "#858F9FFF"
+	# 普通菜单项文字颜色.
+	text: "#0D0F14FF"
+	# 鼠标悬浮或保持高亮时的文字颜色.
+	hover_text: "#FFFFFFFF"
+	# 鼠标悬浮或子菜单入口保持高亮时的背景色.
+	highlight: "#1A61D1FF"
+	# 菜单项按下时的背景色.
+	pressed: "#1247A3FF"
+	# 禁用菜单项文字颜色.
+	disabled_text: "#949BA8FF"
   # 主菜单项列表. 顺序就是右键菜单显示顺序.
   items:
-    # 显示/隐藏宠物窗口. label_visible 是当前可见时显示的文字, label_hidden 是当前隐藏时显示的文字.
-    - id: toggle_visible
-      visible: true
-      label_visible: 隐藏
-      label_hidden: 显示
-    # 鼠标穿透开关.
-    - id: click_through
-      visible: true
-      label: 鼠标穿透
-    # 分隔线.
-    - type: separator
-    # 宠物菜单入口. 子菜单结构为: 宠物 -> ID -> 具体宠物 ID, 宠物 -> 动作 -> 动作名 -> 方向.
-    - id: pet
-      visible: true
-      label: 宠物
-      items:
-        # 宠物 ID 列表入口. 具体 ID 从 config/pet.yaml 中资源完整的宠物动态生成.
-        - id: id
-          visible: true
-          label: ID
-        # 宠物动作入口. 动作和方向从当前宠物的 config/pet.yaml 动作帧配置动态生成.
-        - id: action
-          visible: true
-          label: 动作
-    # 挂机战斗模式切换. 普通模式显示 label_start, 战斗模式显示 label_return.
-    - id: battle
-      visible: true
-      label_start: 开始挂机战斗
-      label_return: 返回桌宠
-    # 缩放菜单入口. options 中 label 是显示文案, value 是实际缩放比例.
-    - id: scale
-      visible: true
-      label: 缩放
-      options:
-        - label: "20%"
-          value: 0.2
-        - label: "40%"
-          value: 0.4
-        - label: "60%"
-          value: 0.6
-        - label: "80%"
-          value: 0.8
-        - label: "100%"
-          value: 1.0
-    # 透明度菜单入口. options 中 label 是显示文案, value 是实际透明度.
-    - id: opacity
-      visible: true
-      label: 透明度
-      options:
-        - label: "10%"
-          value: 0.1
-        - label: "30%"
-          value: 0.3
-        - label: "50%"
-          value: 0.5
-        - label: "70%"
-          value: 0.7
-        - label: "90%"
-          value: 0.9
-        - label: "100%"
-          value: 1.0
-    # 分隔线.
-    - type: separator
-    # 重置宠物窗口位置.
-    - id: reset_position
-      visible: true
-      label: 重置位置
-    # 打开选项标签对话框.
-    - id: options
-      visible: true
-      label: 选项...
-    # 退出程序.
-    - id: quit
-      visible: true
-      label: 退出
+	# 显示/隐藏宠物窗口. label_visible 是当前可见时显示的文字, label_hidden 是当前隐藏时显示的文字.
+	- id: toggle_visible
+	  visible: true
+	  label_visible: 隐藏
+	  label_hidden: 显示
+	# 鼠标穿透开关.
+	- id: click_through
+	  visible: true
+	  label: 鼠标穿透
+	# 分隔线.
+	- type: separator
+	# 宠物菜单入口. 子菜单结构为: 宠物 -> ID -> 具体宠物 ID, 宠物 -> 动作 -> 动作名 -> 方向.
+	- id: pet
+	  visible: true
+	  label: 宠物
+	  items:
+		# 宠物 ID 列表入口. 具体 ID 从 config/pet.yaml 中资源完整的宠物动态生成.
+		- id: id
+		  visible: true
+		  label: ID
+		# 宠物动作入口. 动作和方向从当前宠物的 config/pet.yaml 动作帧配置动态生成.
+		- id: action
+		  visible: true
+		  label: 动作
+	# 挂机战斗模式切换. 普通模式显示 label_start, 战斗模式显示 label_return.
+	- id: battle
+	  visible: true
+	  label_start: 开始挂机战斗
+	  label_return: 返回桌宠
+	# 缩放菜单入口. options 中 label 是显示文案, value 是实际缩放比例.
+	- id: scale
+	  visible: true
+	  label: 缩放
+	  options:
+		- label: "20%"
+		  value: 0.2
+		- label: "40%"
+		  value: 0.4
+		- label: "60%"
+		  value: 0.6
+		- label: "80%"
+		  value: 0.8
+		- label: "100%"
+		  value: 1.0
+	# 透明度菜单入口. options 中 label 是显示文案, value 是实际透明度.
+	- id: opacity
+	  visible: true
+	  label: 透明度
+	  options:
+		- label: "10%"
+		  value: 0.1
+		- label: "30%"
+		  value: 0.3
+		- label: "50%"
+		  value: 0.5
+		- label: "70%"
+		  value: 0.7
+		- label: "90%"
+		  value: 0.9
+		- label: "100%"
+		  value: 1.0
+	# 分隔线.
+	- type: separator
+	# 重置宠物窗口位置.
+	- id: reset_position
+	  visible: true
+	  label: 重置位置
+	# 打开选项标签对话框.
+	- id: options
+	  visible: true
+	  label: 选项...
+	# 退出程序.
+	- id: quit
+	  visible: true
+	  label: 退出
