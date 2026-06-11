@@ -16,19 +16,19 @@ const CONFIG_CHARACTER_PATH := "res://config/character.yaml"
 const CONFIG_ENEMY_GROUP_PATH := "res://config/enemy.group.yaml"
 
 # 宠物资源目录和偏移总表路径由资产管理器, 动画构建器和测试页共用.
-# 每个宠物仍使用同 ID 的 PNG 和 .tpsheet, offsets.json 保存 pet_id -> frame_id -> [x, y] 的偏移映射.
+# 每个宠物仍使用同 ID 的 PNG 和 .tpsheet, offsets.json 可选保存 pet_id -> frame_id -> [x, y] 的偏移映射.
 # 资产管理器会根据宠物 ID 在 ASSET_PET_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
 const ASSET_PET_DIR := "res://assets/pet"
 const PET_OFFSETS_PATH := "res://assets/pet/offsets.json"
 
 # 角色资源目录和偏移总表路径由资产管理器, 动画构建器和测试页共用.
-# 每个角色仍使用同 ID 的 PNG 和 .tpsheet, offsets.json 保存 character_id -> frame_id -> [x, y] 的偏移映射.
+# 每个角色仍使用同 ID 的 PNG 和 .tpsheet, offsets.json 可选保存 character_id -> frame_id -> [x, y] 的偏移映射.
 # 资产管理器会根据角色 ID 在 ASSET_CHARACTER_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
 const ASSET_CHARACTER_DIR := "res://assets/character"
 const CHARACTER_OFFSETS_PATH := "res://assets/character/offsets.json"
 
 # padding 给动画画布四周留一点空白, 避免极限帧贴到窗口边缘.
-# 实际画布大小仍由帧 region, margin 和 offsets 计算得出; 这里不是宠物体型上限, 只是统一额外边距.
+# 实际画布大小仍由帧 region, margin 和可选 offsets 计算得出; 这里不是宠物体型上限, 只是统一额外边距.
 const ANIMATION_PADDING := Vector2(24.0, 24.0)
 
 # 项目动画配置中的 8 方向统一定义.
