@@ -1,7 +1,7 @@
 # 公共常量集合.
 # 这个脚本只放项目级常量, 不放会修改运行状态的数据, 也不承担资源加载逻辑.
-# 其它脚本通常通过 `const ConstantsScript := preload("res://scripts/common/constants.gd")` 引用这里的 const.
-# 因为 const 在脚本加载后就能直接读取, 调用方不需要执行 `Constants.new()`.
+# 其它脚本可以直接通过 `Constants.CONFIG_PET_PATH` 或 `Constants.DIRECTIONS` 这类 `class_name` 全局类型引用这里的 const.
+# 调用方不需要 `preload`, 也不需要执行 `Constants.new()`.
 # 这里继承 RefCounted 只是为了符合 GDScript 脚本类型写法, 本文件没有 Godot Node 生命周期函数.
 class_name Constants
 extends RefCounted
@@ -11,15 +11,21 @@ extends RefCounted
 # 配置文件路径由 ConfigManager 统一读取.
 # 这些 YAML 是运行时配置源数据, 必须保持标准空格缩进; 读取阶段不修正 tab 缩进.
 # `res://` 表示 Godot 项目根目录, 所以下面的路径对应项目内的 config 目录.
-const PET_CONFIG_PATH := "res://config/pet.yaml"
-const CHARACTER_CONFIG_PATH := "res://config/character.yaml"
-const ENEMY_GROUP_CONFIG_PATH := "res://config/enemy.group.yaml"
+const CONFIG_PET_PATH := "res://config/pet.yaml"
+const CONFIG_CHARACTER_PATH := "res://config/character.yaml"
+const CONFIG_ENEMY_GROUP_PATH := "res://config/enemy.group.yaml"
 
-# 宠物资源目录和偏移总表路径由动画构建器和测试页共用.
+# 宠物资源目录和偏移总表路径由资产管理器, 动画构建器和测试页共用.
 # 每个宠物仍使用同 ID 的 PNG 和 .tpsheet, offsets.json 保存 pet_id -> frame_id -> [x, y] 的偏移映射.
-# 动画构建器会根据宠物 ID 在 PET_ASSET_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
-const PET_ASSET_DIR := "res://assets/pet"
+# 资产管理器会根据宠物 ID 在 ASSET_PET_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
+const ASSET_PET_DIR := "res://assets/pet"
 const PET_OFFSETS_PATH := "res://assets/pet/offsets.json"
+
+# 角色资源目录和偏移总表路径由资产管理器, 动画构建器和测试页共用.
+# 每个角色仍使用同 ID 的 PNG 和 .tpsheet, offsets.json 保存 character_id -> frame_id -> [x, y] 的偏移映射.
+# 资产管理器会根据角色 ID 在 ASSET_CHARACTER_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
+const ASSET_CHARACTER_DIR := "res://assets/character"
+const CHARACTER_OFFSETS_PATH := "res://assets/character/offsets.json"
 
 # padding 给动画画布四周留一点空白, 避免极限帧贴到窗口边缘.
 # 实际画布大小仍由帧 region, margin 和 offsets 计算得出; 这里不是宠物体型上限, 只是统一额外边距.
