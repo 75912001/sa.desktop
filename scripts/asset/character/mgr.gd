@@ -1,4 +1,4 @@
-class_name AssetCharacterManager
+class_name AssetCharacterMgr
 extends RefCounted
 
 # 角色资源管理器.

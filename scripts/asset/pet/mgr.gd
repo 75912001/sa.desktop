@@ -1,4 +1,4 @@
-class_name AssetPetManager
+class_name AssetPetMgr
 extends RefCounted
 
 # 宠物资源管理器.

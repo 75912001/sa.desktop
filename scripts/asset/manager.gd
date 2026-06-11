@@ -8,17 +8,17 @@ extends RefCounted
 
 # 宠物资源索引.
 # 负责 assets/pet 下 `{pet_id}.png`, `{pet_id}.tpsheet` 和可选 offsets 的元数据加载.
-var asset_pet_mgr: AssetPetManager
+var asset_pet_mgr: AssetPetMgr
 # 角色资源索引.
 # 负责 assets/character 下 `{character_id}.png`, `{character_id}.tpsheet` 和可选 offsets 的元数据加载.
-var assets_character_mgr: AssetCharacterManager
+var assets_character_mgr: AssetCharacterMgr
 
 # RefCounted 不会自动进入场景树.
 # ConfigManager 创建 AssetManager 时会触发 _init(), 这里只创建子管理器, 不访问文件系统.
 func _init() -> void:
 	# 直接通过 class_name 创建子管理器, 让资产入口依赖的具体管理器在这里清晰可见.
-	asset_pet_mgr = AssetPetManager.new()
-	assets_character_mgr = AssetCharacterManager.new()
+	asset_pet_mgr = AssetPetMgr.new()
+	assets_character_mgr = AssetCharacterMgr.new()
 
 # 启动阶段的资源加载入口.
 # 这里加载的是资源元数据和索引, 包括 atlas 路径和已合成的 .tpsheet 帧表.
