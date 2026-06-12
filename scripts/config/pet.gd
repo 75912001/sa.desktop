@@ -81,8 +81,7 @@ func load() -> void:
     # skill 段先加载成 id -> SkillEntry.
     # pet 段的 skill_slots 只保存技能 ID, 真正的引用合法性在 check() 阶段统一验证.
     var raw_skills = config_data.get("skill", [])
-    if not (raw_skills is Array):
-        assert(false, "宠物配置 skill 段不是数组: %s" % Constants.CONFIG_PET_PATH)
+    assert(raw_skills is Array, "宠物配置 skill 段不是数组: %s" % Constants.CONFIG_PET_PATH)
 
     for skill_item in raw_skills:
         assert(skill_item is Dictionary, "宠物技能条目须为对象: %s" % Constants.CONFIG_PET_PATH)
@@ -100,13 +99,12 @@ func load() -> void:
     # attribute 段是默认属性表.
     # 单个宠物 attribute 缺少倍率字段时, _parse_rate() 会从这里取默认值.
     var raw_attributes = config_data.get("attribute", [])
-    if not (raw_attributes is Array):
-        assert(false, "宠物配置 attribute 段不是数组: %s" % Constants.CONFIG_PET_PATH)
-    else:
-        for attribute_row in raw_attributes:
-            assert(attribute_row is Dictionary, "宠物默认属性条目须为对象: %s" % Constants.CONFIG_PET_PATH)
-            for attribute_key in attribute_row:
-                _default_attributes[str(attribute_key)] = attribute_row[attribute_key]
+    assert(raw_attributes is Array, "宠物配置 attribute 段不是数组: %s" % Constants.CONFIG_PET_PATH)
+
+    for attribute_row in raw_attributes:
+        assert(attribute_row is Dictionary, "宠物默认属性条目须为对象: %s" % Constants.CONFIG_PET_PATH)
+        for attribute_key in attribute_row:
+            _default_attributes[str(attribute_key)] = attribute_row[attribute_key]
 
     # pet 段是主数据.
     # 每条记录会被转换成 Entry, 供桌宠选择, 战斗单位和动画构建器按 ID 读取.
