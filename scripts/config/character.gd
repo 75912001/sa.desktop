@@ -154,7 +154,7 @@ func check() -> void:
 	# 这里关心的是 character.yaml 中声明的角色 ID 和 frame id 是否能在资源索引中找到.
 	for character_id in _by_id:
 		var character: Entry = _by_id[character_id]
-		var character_asset := character_mgr.get(int(character_id))
+		var character_asset := character_mgr.get_by_id(int(character_id))
 		assert(character_asset != null, "角色缺少资源: character:%d missing:[png]" % int(character_id))
 		if character_asset == null:
 			continue
@@ -181,7 +181,7 @@ func assemble(asset_manager: AssetManager = null) -> void:
 
 	for character_id in _by_id.keys():
 		var character := _by_id[character_id] as Entry
-		character.asset = asset_manager.character_mgr.get(int(character_id))
+		character.asset = asset_manager.character_mgr.get_by_id(int(character_id))
 		assert(character.asset != null, "角色配置组装缺少资源引用: character:%d" % int(character_id))
 
 # 返回 config/character.yaml 中声明过的角色 ID.
@@ -194,5 +194,5 @@ func get_ids() -> Array[int]:
 	return ids
 
 # 根据角色 ID 返回单个结构化角色配置.
-func get(character_id: int) -> Entry:
+func get_by_id(character_id: int) -> Entry:
 	return _by_id.get(character_id, null) as Entry
