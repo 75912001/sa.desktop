@@ -19,8 +19,8 @@ class SkillEntry extends RefCounted:
 # Entry.frame_entries 使用 Vector2i(direction, action) 直接定位这个对象.
 # YAML 里的字符串方向和动作只在 load() 阶段出现, 进入内存后统一转成 Constants 枚举值.
 class FrameDirectionActionEntry extends RefCounted:
-    var direction: int = Constants.AssetDirection.AssetDirection_Unknown
-    var action: int = Constants.AssetPetAction.AssetPetAction_Unknown
+    var direction: int = Constants.Direction.Unknown
+    var action: int = Constants.PetAction.Unknown
     var frame_ids: Array = []
 
 # 宠物配置条目.
@@ -177,7 +177,7 @@ func load() -> void:
         var frame_dict := raw_frame as Dictionary
         for frame_direction in frame_dict.keys():
             var direction := Constants.direction_from_key(str(frame_direction))
-            assert(direction != Constants.AssetDirection.AssetDirection_Unknown, "宠物 frame 方向未知: pet:%d direction:%s" % [entry.id, str(frame_direction)])
+            assert(direction != Constants.Direction.Unknown, "宠物 frame 方向未知: pet:%d direction:%s" % [entry.id, str(frame_direction)])
 
             var direction_data = frame_dict[frame_direction]
             assert(direction_data is Dictionary, "宠物 frame 方向配置须为对象: pet:%d direction:%s" % [entry.id, str(frame_direction)])
@@ -185,7 +185,7 @@ func load() -> void:
             var action_dict := direction_data as Dictionary
             for frame_action in action_dict.keys():
                 var action := Constants.pet_action_from_key(str(frame_action))
-                assert(action != Constants.AssetPetAction.AssetPetAction_Unknown, "宠物 frame 动作未知: pet:%d direction:%s action:%s" % [entry.id, str(frame_direction), str(frame_action)])
+                assert(action != Constants.PetAction.Unknown, "宠物 frame 动作未知: pet:%d direction:%s action:%s" % [entry.id, str(frame_direction), str(frame_action)])
 
                 var frame_ids = action_dict[frame_action]
                 assert(frame_ids is Array, "宠物 frame 动作配置须为帧号数组: pet:%d direction:%s action:%s" % [entry.id, str(frame_direction), str(frame_action)])

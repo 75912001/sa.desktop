@@ -8,9 +8,9 @@ extends RefCounted
 # key 由 Entry.frame_entries 使用 Vector3i(direction, weapon, action) 直接定位,
 # 避免运行时先取方向或武器对象, 再取动作字典的多层包装.
 class FrameDirectionWeaponActionEntry extends RefCounted:
-    var direction: int = Constants.AssetDirection.AssetDirection_Unknown
-    var weapon: int = Constants.AssetWeapon.AssetWeapon_Unknown
-    var action: int = Constants.AssetCharacterAction.AssetCharacterAction_Unknown
+    var direction: int = Constants.Direction.Unknown
+    var weapon: int = Constants.Weapon.Unknown
+    var action: int = Constants.CharacterAction.Unknown
     var frame_ids: Array = []
 
 # 单个角色配置条目.
@@ -71,8 +71,8 @@ func load() -> void:
             var frame_dict := raw_frame as Dictionary
             for weapon in frame_dict.keys():
                 var weapon_value := Constants.weapon_from_key(str(weapon))
-                assert(weapon_value != Constants.AssetWeapon.AssetWeapon_Unknown, "角色 frame 武器未知: character:%d weapon:%s" % [character.id, str(weapon)])
-                if weapon_value == Constants.AssetWeapon.AssetWeapon_Unknown:
+                assert(weapon_value != Constants.Weapon.Unknown, "角色 frame 武器未知: character:%d weapon:%s" % [character.id, str(weapon)])
+                if weapon_value == Constants.Weapon.Unknown:
                     continue
 
                 var weapon_data = frame_dict[weapon]
@@ -83,8 +83,8 @@ func load() -> void:
                 var weapon_dict := weapon_data as Dictionary
                 for direction_key in weapon_dict.keys():
                     var direction := Constants.direction_from_key(str(direction_key))
-                    assert(direction != Constants.AssetDirection.AssetDirection_Unknown, "角色 frame 方向未知: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction_key)])
-                    if direction == Constants.AssetDirection.AssetDirection_Unknown:
+                    assert(direction != Constants.Direction.Unknown, "角色 frame 方向未知: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction_key)])
+                    if direction == Constants.Direction.Unknown:
                         continue
 
                     var direction_data = weapon_dict[direction_key]
@@ -95,8 +95,8 @@ func load() -> void:
                     var direction_dict := direction_data as Dictionary
                     for action in direction_dict.keys():
                         var action_value := Constants.character_action_from_key(str(action))
-                        assert(action_value != Constants.AssetCharacterAction.AssetCharacterAction_Unknown, "角色 frame 动作未知: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction_key), str(action)])
-                        if action_value == Constants.AssetCharacterAction.AssetCharacterAction_Unknown:
+                        assert(action_value != Constants.CharacterAction.Unknown, "角色 frame 动作未知: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction_key), str(action)])
+                        if action_value == Constants.CharacterAction.Unknown:
                             continue
 
                         var frame_ids = direction_dict[action]
