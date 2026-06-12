@@ -16,15 +16,15 @@ var character_mgr: AssetCharacterMgr
 # RefCounted 不会自动进入场景树.
 # ConfigManager 创建 AssetManager 时会触发 _init(), 这里只创建子管理器, 不访问文件系统.
 func _init() -> void:
-	# 直接通过 class_name 创建子管理器, 让资产入口依赖的具体管理器在这里清晰可见.
-	pet_mgr = AssetPetMgr.new()
-	character_mgr = AssetCharacterMgr.new()
+    # 直接通过 class_name 创建子管理器, 让资产入口依赖的具体管理器在这里清晰可见.
+    pet_mgr = AssetPetMgr.new()
+    character_mgr = AssetCharacterMgr.new()
 
 # 启动阶段的资源加载入口.
 # 这里加载的是资源元数据和索引, 包括 atlas 路径和已合成的 .tpsheet 帧表.
 # 真实 Texture2D 仍由动画构建器按需 load(), 避免启动时一次性加载所有图集纹理.
 func load() -> void:
-	# 先加载宠物再加载角色目前没有依赖关系.
-	# 顺序保持固定只是为了调试日志和断言输出稳定, 便于定位启动阶段的资源问题.
-	pet_mgr.load()
-	character_mgr.load()
+    # 先加载宠物再加载角色目前没有依赖关系.
+    # 顺序保持固定只是为了调试日志和断言输出稳定, 便于定位启动阶段的资源问题.
+    pet_mgr.load()
+    character_mgr.load()

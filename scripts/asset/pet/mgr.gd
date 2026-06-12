@@ -161,7 +161,7 @@ func load() -> void:
 		assert(missing_sources.is_empty(), "宠物资源不完整: pet:%d missing:%s" % [int(loaded_pet_id), str(missing_sources)])
 
 # 按宠物 ID 返回已加载的宠物资源条目.
-func get(pet_id: int) -> Entry:
+func get_by_id(pet_id: int) -> Entry:
 	# 返回启动阶段建立的索引条目; 不存在时返回 null, 调用方据此输出缺资源错误.
 	# 这里不自动创建条目, 因为宠物资源必须以 PNG 文件为主导.
-	return _by_id.get(pet_id, null)
+	return _by_id.get(pet_id, null) as Entry

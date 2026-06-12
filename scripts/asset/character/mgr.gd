@@ -160,7 +160,7 @@ func load() -> void:
 		assert(missing_sources.is_empty(), "角色资源不完整: character:%d missing:%s" % [int(loaded_character_id), str(missing_sources)])
 
 # 按角色 ID 返回已加载的角色资源条目.
-func get(character_id: int) -> Entry:
+func get_by_id(character_id: int) -> Entry:
 	# 返回启动阶段建立的索引条目; 不存在时返回 null, 调用方据此输出缺资源错误.
 	# 这里不自动创建条目, 因为角色资源必须以 PNG 文件为主导.
-	return _by_id.get(character_id, null)
+	return _by_id.get(character_id, null) as Entry
