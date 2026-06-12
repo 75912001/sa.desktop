@@ -15,10 +15,10 @@ class SkillEntry extends RefCounted:
     func show() -> String:
         return name
 
-# 宠物某个方向和动作组合下的帧配置.
-# Entry.frame_entries 使用 Vector2i(direction, action) 直接定位这个对象.
-# YAML 里的字符串方向和动作只在 load() 阶段出现, 进入内存后统一转成 Constants 枚举值.
-class FrameDirectionActionEntry extends RefCounted:
+# 宠物某个方向和动作组合下的动作帧表条目.
+# Entry.action_frame_entries 使用 Vector2i(direction, action) 直接定位这个对象.
+# YAML 的 sprite 字段只在 load() 阶段作为源字段名出现, 进入内存后统一转成动作帧表.
+class ActionFrameEntry extends RefCounted:
     var direction: int = Constants.Direction.Unknown
     var action: int = Constants.PetAction.Unknown
     var frame_ids: Array = []
@@ -48,9 +48,9 @@ class Entry extends RefCounted:
     var habitat: String
     var level1_spawn: String
     var description: String
-    # Vector2i(direction, action) -> FrameDirectionActionEntry.
+    # Vector2i(direction, action) -> ActionFrameEntry.
     # 宠物资源要求每个方向和动作组合都存在, 因此动画构建器可直接定位帧号表.
-    var frame_entries: Dictionary = {}
+    var action_frame_entries: Dictionary = {}
     # 这里保存 AssetPetMgr 启动阶段创建的 AssetPetMgr.Entry 引用.
     # 它不是资源数据拷贝, 只是同一个 RefCounted 对象引用, 便于动画构建器从宠物配置直接拿到 PNG 路径和帧表.
     var asset: AssetPetMgr.Entry
@@ -58,8 +58,8 @@ class Entry extends RefCounted:
     func show() -> String:
         return name
 
-    func get_frame_entry(direction: int, action: int) -> FrameDirectionActionEntry:
-        return frame_entries.get(Vector2i(direction, action), null) as FrameDirectionActionEntry
+    func get_action_frame_entry(direction: int, action: int) -> ActionFrameEntry:
+        return action_frame_entries.get(Vector2i(direction, action), null) as ActionFrameEntry
 
 # 技能 ID -> SkillEntry.
 # ConfigManager.get_shared() 首次创建共享管理器时统一加载, 后续查询复用这份内存缓存.
@@ -169,42 +169,42 @@ func load() -> void:
         entry.description = str(pet_item.get("description", ""))
         assert(not entry.description.is_empty(), "宠物描述为空: ID:%d" % entry.id)
 
-        # frame 源结构是 direction -> action -> frame ids.
-        # 这里把 direction 和 action 一起收敛成 FrameDirectionActionEntry, 上层可直接定位帧号表.
-        var raw_frame = pet_item.get("sprite", {})
-        var frame_entries := {}
-        assert(raw_frame is Dictionary, "宠物 frame 须为对象: ID:%d" % entry.id)
-        var frame_dict := raw_frame as Dictionary
-        for frame_direction in frame_dict.keys():
-            var direction := Constants.direction_from_key(str(frame_direction))
-            assert(direction != Constants.Direction.Unknown, "宠物 frame 方向未知: pet:%d direction:%s" % [entry.id, str(frame_direction)])
+        # sprite 字段的动作帧表源结构是 direction -> action -> frame ids.
+        # 这里把 direction 和 action 一起收敛成 ActionFrameEntry, 上层可直接定位帧号表.
+        var raw_action_frames = pet_item.get("sprite", {})
+        var action_frame_entries := {}
+        assert(raw_action_frames is Dictionary, "宠物动作帧表须为对象: ID:%d" % entry.id)
+        var action_frame_dict := raw_action_frames as Dictionary
+        for direction_key in action_frame_dict.keys():
+            var direction := Constants.direction_from_key(str(direction_key))
+            assert(direction != Constants.Direction.Unknown, "宠物动作帧表方向未知: pet:%d direction:%s" % [entry.id, str(direction_key)])
 
-            var direction_data = frame_dict[frame_direction]
-            assert(direction_data is Dictionary, "宠物 frame 方向配置须为对象: pet:%d direction:%s" % [entry.id, str(frame_direction)])
+            var direction_data = action_frame_dict[direction_key]
+            assert(direction_data is Dictionary, "宠物动作帧表方向配置须为对象: pet:%d direction:%s" % [entry.id, str(direction_key)])
 
             var action_dict := direction_data as Dictionary
-            for frame_action in action_dict.keys():
-                var action := Constants.pet_action_from_key(str(frame_action))
-                assert(action != Constants.PetAction.Unknown, "宠物 frame 动作未知: pet:%d direction:%s action:%s" % [entry.id, str(frame_direction), str(frame_action)])
+            for action_key in action_dict.keys():
+                var action := Constants.pet_action_from_key(str(action_key))
+                assert(action != Constants.PetAction.Unknown, "宠物动作帧表动作未知: pet:%d direction:%s action:%s" % [entry.id, str(direction_key), str(action_key)])
 
-                var frame_ids = action_dict[frame_action]
-                assert(frame_ids is Array, "宠物 frame 动作配置须为帧号数组: pet:%d direction:%s action:%s" % [entry.id, str(frame_direction), str(frame_action)])
+                var frame_ids = action_dict[action_key]
+                assert(frame_ids is Array, "宠物动作帧表动作配置须为帧号数组: pet:%d direction:%s action:%s" % [entry.id, str(direction_key), str(action_key)])
 
                 var parsed_frame_ids := []
                 for frame_id_raw in frame_ids:
                     parsed_frame_ids.append(int(frame_id_raw))
 
-                var frame_entry := FrameDirectionActionEntry.new()
-                frame_entry.direction = direction
-                frame_entry.action = action
-                frame_entry.frame_ids = parsed_frame_ids
-                var frame_key := Vector2i(frame_entry.direction, frame_entry.action)
-                assert(not frame_entries.has(frame_key), "宠物 frame 方向动作重复: pet:%d direction:%s action:%s" % [entry.id, str(frame_direction), str(frame_action)])
-                frame_entries[frame_key] = frame_entry
+                var action_frame_entry := ActionFrameEntry.new()
+                action_frame_entry.direction = direction
+                action_frame_entry.action = action
+                action_frame_entry.frame_ids = parsed_frame_ids
+                var action_frame_key := Vector2i(action_frame_entry.direction, action_frame_entry.action)
+                assert(not action_frame_entries.has(action_frame_key), "宠物动作帧表方向动作重复: pet:%d direction:%s action:%s" % [entry.id, str(direction_key), str(action_key)])
+                action_frame_entries[action_frame_key] = action_frame_entry
         for required_direction in Constants.DIRECTION_VALUES:
             for required_action in Constants.PET_ACTION_VALUES:
-                assert(frame_entries.has(Vector2i(int(required_direction), int(required_action))), "宠物 frame 缺少方向动作: pet:%d direction:%s action:%s" % [entry.id, Constants.direction_to_key(int(required_direction)), Constants.pet_action_to_key(int(required_action))])
-        entry.frame_entries = frame_entries
+                assert(action_frame_entries.has(Vector2i(int(required_direction), int(required_action))), "宠物动作帧表缺少方向动作: pet:%d direction:%s action:%s" % [entry.id, Constants.direction_to_key(int(required_direction)), Constants.pet_action_to_key(int(required_action))])
+        entry.action_frame_entries = action_frame_entries
 
         _by_id[entry.id] = entry
 
@@ -239,15 +239,15 @@ func check() -> void:
         var pet_asset := pet_mgr.get_by_id(asset_entry.id)
         assert(pet_asset != null, "宠物缺少资源: pet:%d missing:[png]" % asset_entry.id)
 
-        # 逐帧检查 YAML 动作表和 TexturePacker 帧表是否对齐.
+        # 逐帧检查 YAML 动作帧表和 TexturePacker 帧表是否对齐.
         # 缺帧通常说明 pet.yaml 写错帧号, 或对应 .tpsheet 没有导出该 frame.
-        for frame_value in asset_entry.frame_entries.values():
-            var frame_entry := frame_value as FrameDirectionActionEntry
-            assert(frame_entry != null, "宠物 frame entry 类型非法: pet:%d" % asset_entry.id)
-            var direction_key := Constants.direction_to_key(frame_entry.direction)
-            var action_key := Constants.pet_action_to_key(frame_entry.action)
-            for frame_id in frame_entry.frame_ids:
-                assert(pet_asset.sheet_frames.has(int(frame_id)), "宠物 frame 引用了不存在的可播放帧: pet:%d direction:%s action:%s frame:%d" % [asset_entry.id, direction_key, action_key, int(frame_id)])
+        for action_frame_value in asset_entry.action_frame_entries.values():
+            var action_frame_entry := action_frame_value as ActionFrameEntry
+            assert(action_frame_entry != null, "宠物动作帧表条目类型非法: pet:%d" % asset_entry.id)
+            var direction_key := Constants.direction_to_key(action_frame_entry.direction)
+            var action_key := Constants.pet_action_to_key(action_frame_entry.action)
+            for frame_id in action_frame_entry.frame_ids:
+                assert(pet_asset.sheet_frames.has(int(frame_id)), "宠物动作帧表引用了不存在的可播放帧: pet:%d direction:%s action:%s frame:%d" % [asset_entry.id, direction_key, action_key, int(frame_id)])
 
 # 配置管理流程的第三步.
 # 这里把 Entry 和同 ID AssetPetMgr.Entry 组装到一起.
