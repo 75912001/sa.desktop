@@ -80,7 +80,7 @@ func check(pet_config: ConfigPet = null, asset_manager: AssetManager = null) -> 
         push_warning("敌人组配置中没有解析到 enemyGroups 数据: %s" % Constants.CONFIG_ENEMY_GROUP_PATH)
 
     if pet_config != null:
-        # 敌人模板复用宠物配置和宠物资源.
+        # 敌人条目复用宠物模板配置和宠物资源.
         # check() 阶段同时确认 pet.yaml 中有该宠物, AssetPetMgr 中也有同 ID 可播放资源.
         for group_id in _by_id:
             var group: EnemyGroupEntry = _by_id[group_id]
