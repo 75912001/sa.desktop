@@ -31,6 +31,67 @@ const CHARACTER_OFFSETS_PATH := "res://assets/character/offsets.json"
 # 实际画布大小仍由帧 region, margin 和可选 offsets 计算得出; 这里不是宠物体型上限, 只是统一额外边距.
 const ANIMATION_PADDING := Vector2(24.0, 24.0)
 
+# 资产朝向枚举.
+# 编号先在 GDScript 中固定为 protobuf 风格, 后续如果接入真实 `.proto`, 需要保持这些数值不变.
+enum AssetOrientation {
+	AssetOrientation_Unknown = 0,
+	AssetOrientation_Up = 1,
+	AssetOrientation_UpRight = 2,
+	AssetOrientation_Right = 3,
+	AssetOrientation_DownRight = 4,
+	AssetOrientation_Down = 5,
+	AssetOrientation_DownLeft = 6,
+	AssetOrientation_Left = 7,
+	AssetOrientation_UpLeft = 8,
+	AssetOrientation_Max = 9,
+}
+
+# 宠物动作枚举.
+# YAML 和菜单继续使用字符串 key, 宠物配置结构使用这些稳定枚举值做 Dictionary key.
+enum AssetPetAction {
+	AssetPetAction_Unknown = 0,
+	AssetPetAction_Attack = 1,
+	AssetPetAction_Faint = 2,
+	AssetPetAction_Hurt = 3,
+	AssetPetAction_Defense = 4,
+	AssetPetAction_Stand = 5,
+	AssetPetAction_Walk = 6,
+	AssetPetAction_AttackShort = 7,
+	AssetPetAction_Max = 8,
+}
+
+# 角色动作枚举.
+# 角色动作集合和宠物不同, 因此使用独立枚举空间, 避免运行时误用另一类动作 key.
+enum AssetCharacterAction {
+	AssetCharacterAction_Unknown = 0,
+	AssetCharacterAction_Attack = 1,
+	AssetCharacterAction_Wave = 2,
+	AssetCharacterAction_Faint = 3,
+	AssetCharacterAction_Hurt = 4,
+	AssetCharacterAction_Defense = 5,
+	AssetCharacterAction_Sad = 6,
+	AssetCharacterAction_Angry = 7,
+	AssetCharacterAction_Sit = 8,
+	AssetCharacterAction_Stand = 9,
+	AssetCharacterAction_Throw = 10,
+	AssetCharacterAction_Nod = 11,
+	AssetCharacterAction_Walk = 12,
+	AssetCharacterAction_Happy = 13,
+	AssetCharacterAction_Max = 14,
+}
+
+# 角色武器枚举.
+# 角色 YAML 仍使用字符串武器名, 运行时 ConfigCharacter 使用这些枚举值做 Dictionary key.
+enum AssetWeapon {
+	AssetWeapon_Unknown = 0,
+	AssetWeapon_Unarmed = 1,
+	AssetWeapon_Axe = 2,
+	AssetWeapon_Bow = 3,
+	AssetWeapon_Spear = 4,
+	AssetWeapon_Stick = 5,
+	AssetWeapon_Max = 6,
+}
+
 # 项目动画配置中的 8 方向统一定义.
 # 这个顺序需要和 config/pet.yaml, config/character.yaml, config/tray_menu.yaml 中的方向名保持一致.
 # 运行时动画名会由 `动作_方向` 组成, 例如 `stand_down` 或 `attack_left`.
@@ -46,6 +107,18 @@ const DIRECTIONS := [
 	"downright",
 ]
 
+# 运行时内部使用的方向枚举顺序, 与 DIRECTIONS 字符串顺序一一对应.
+const ORIENTATION_VALUES := [
+	AssetOrientation.AssetOrientation_Down,
+	AssetOrientation.AssetOrientation_DownLeft,
+	AssetOrientation.AssetOrientation_Left,
+	AssetOrientation.AssetOrientation_UpLeft,
+	AssetOrientation.AssetOrientation_Up,
+	AssetOrientation.AssetOrientation_UpRight,
+	AssetOrientation.AssetOrientation_Right,
+	AssetOrientation.AssetOrientation_DownRight,
+]
+
 # 宠物动作顺序用于托盘菜单、动画构建兜底和宠物偏移测试页.
 # 动作显示标签属于具体 UI/菜单用途, 不放在公共常量里.
 # 这里保存的是配置和动画资源使用的动作 key, 不是中文显示文案.
@@ -57,6 +130,17 @@ const PET_ACTIONS := [
 	"stand",
 	"walk",
 	"attackShort",
+]
+
+# 运行时内部使用的宠物动作枚举顺序, 与 PET_ACTIONS 字符串顺序一一对应.
+const PET_ACTION_VALUES := [
+	AssetPetAction.AssetPetAction_Attack,
+	AssetPetAction.AssetPetAction_Faint,
+	AssetPetAction.AssetPetAction_Hurt,
+	AssetPetAction.AssetPetAction_Defense,
+	AssetPetAction.AssetPetAction_Stand,
+	AssetPetAction.AssetPetAction_Walk,
+	AssetPetAction.AssetPetAction_AttackShort,
 ]
 
 # 角色动作顺序用于角色动画构建兜底和角色偏移测试页.
@@ -77,3 +161,157 @@ const CHARACTER_ACTIONS := [
 	"walk",
 	"happy",
 ]
+
+# 运行时内部使用的角色动作枚举顺序, 与 CHARACTER_ACTIONS 字符串顺序一一对应.
+const CHARACTER_ACTION_VALUES := [
+	AssetCharacterAction.AssetCharacterAction_Attack,
+	AssetCharacterAction.AssetCharacterAction_Wave,
+	AssetCharacterAction.AssetCharacterAction_Faint,
+	AssetCharacterAction.AssetCharacterAction_Hurt,
+	AssetCharacterAction.AssetCharacterAction_Defense,
+	AssetCharacterAction.AssetCharacterAction_Sad,
+	AssetCharacterAction.AssetCharacterAction_Angry,
+	AssetCharacterAction.AssetCharacterAction_Sit,
+	AssetCharacterAction.AssetCharacterAction_Stand,
+	AssetCharacterAction.AssetCharacterAction_Throw,
+	AssetCharacterAction.AssetCharacterAction_Nod,
+	AssetCharacterAction.AssetCharacterAction_Walk,
+	AssetCharacterAction.AssetCharacterAction_Happy,
+]
+
+# 角色武器顺序用于配置完整性校验和角色偏移测试页展示.
+const CHARACTER_WEAPONS := [
+	"unarmed",
+	"axe",
+	"bow",
+	"spear",
+	"stick",
+]
+
+# 运行时内部使用的角色武器枚举顺序, 与 CHARACTER_WEAPONS 字符串顺序一一对应.
+const CHARACTER_WEAPON_VALUES := [
+	AssetWeapon.AssetWeapon_Unarmed,
+	AssetWeapon.AssetWeapon_Axe,
+	AssetWeapon.AssetWeapon_Bow,
+	AssetWeapon.AssetWeapon_Spear,
+	AssetWeapon.AssetWeapon_Stick,
+]
+
+# 方向字符串协议和运行时枚举的双向映射.
+# YAML, 托盘菜单和动画名使用字符串; 配置对象内部使用枚举值.
+const ORIENTATION_BY_KEY := {
+	"up": AssetOrientation.AssetOrientation_Up,
+	"upright": AssetOrientation.AssetOrientation_UpRight,
+	"right": AssetOrientation.AssetOrientation_Right,
+	"downright": AssetOrientation.AssetOrientation_DownRight,
+	"down": AssetOrientation.AssetOrientation_Down,
+	"downleft": AssetOrientation.AssetOrientation_DownLeft,
+	"left": AssetOrientation.AssetOrientation_Left,
+	"upleft": AssetOrientation.AssetOrientation_UpLeft,
+}
+
+const ORIENTATION_KEY_BY_VALUE := {
+	AssetOrientation.AssetOrientation_Up: "up",
+	AssetOrientation.AssetOrientation_UpRight: "upright",
+	AssetOrientation.AssetOrientation_Right: "right",
+	AssetOrientation.AssetOrientation_DownRight: "downright",
+	AssetOrientation.AssetOrientation_Down: "down",
+	AssetOrientation.AssetOrientation_DownLeft: "downleft",
+	AssetOrientation.AssetOrientation_Left: "left",
+	AssetOrientation.AssetOrientation_UpLeft: "upleft",
+}
+
+# 宠物动作字符串协议和运行时枚举的双向映射.
+const PET_ACTION_BY_KEY := {
+	"attack": AssetPetAction.AssetPetAction_Attack,
+	"faint": AssetPetAction.AssetPetAction_Faint,
+	"hurt": AssetPetAction.AssetPetAction_Hurt,
+	"defense": AssetPetAction.AssetPetAction_Defense,
+	"stand": AssetPetAction.AssetPetAction_Stand,
+	"walk": AssetPetAction.AssetPetAction_Walk,
+	"attackShort": AssetPetAction.AssetPetAction_AttackShort,
+}
+
+const PET_ACTION_KEY_BY_VALUE := {
+	AssetPetAction.AssetPetAction_Attack: "attack",
+	AssetPetAction.AssetPetAction_Faint: "faint",
+	AssetPetAction.AssetPetAction_Hurt: "hurt",
+	AssetPetAction.AssetPetAction_Defense: "defense",
+	AssetPetAction.AssetPetAction_Stand: "stand",
+	AssetPetAction.AssetPetAction_Walk: "walk",
+	AssetPetAction.AssetPetAction_AttackShort: "attackShort",
+}
+
+# 角色动作字符串协议和运行时枚举的双向映射.
+const CHARACTER_ACTION_BY_KEY := {
+	"attack": AssetCharacterAction.AssetCharacterAction_Attack,
+	"wave": AssetCharacterAction.AssetCharacterAction_Wave,
+	"faint": AssetCharacterAction.AssetCharacterAction_Faint,
+	"hurt": AssetCharacterAction.AssetCharacterAction_Hurt,
+	"defense": AssetCharacterAction.AssetCharacterAction_Defense,
+	"sad": AssetCharacterAction.AssetCharacterAction_Sad,
+	"angry": AssetCharacterAction.AssetCharacterAction_Angry,
+	"sit": AssetCharacterAction.AssetCharacterAction_Sit,
+	"stand": AssetCharacterAction.AssetCharacterAction_Stand,
+	"throw": AssetCharacterAction.AssetCharacterAction_Throw,
+	"nod": AssetCharacterAction.AssetCharacterAction_Nod,
+	"walk": AssetCharacterAction.AssetCharacterAction_Walk,
+	"happy": AssetCharacterAction.AssetCharacterAction_Happy,
+}
+
+const CHARACTER_ACTION_KEY_BY_VALUE := {
+	AssetCharacterAction.AssetCharacterAction_Attack: "attack",
+	AssetCharacterAction.AssetCharacterAction_Wave: "wave",
+	AssetCharacterAction.AssetCharacterAction_Faint: "faint",
+	AssetCharacterAction.AssetCharacterAction_Hurt: "hurt",
+	AssetCharacterAction.AssetCharacterAction_Defense: "defense",
+	AssetCharacterAction.AssetCharacterAction_Sad: "sad",
+	AssetCharacterAction.AssetCharacterAction_Angry: "angry",
+	AssetCharacterAction.AssetCharacterAction_Sit: "sit",
+	AssetCharacterAction.AssetCharacterAction_Stand: "stand",
+	AssetCharacterAction.AssetCharacterAction_Throw: "throw",
+	AssetCharacterAction.AssetCharacterAction_Nod: "nod",
+	AssetCharacterAction.AssetCharacterAction_Walk: "walk",
+	AssetCharacterAction.AssetCharacterAction_Happy: "happy",
+}
+
+# 武器字符串协议和运行时枚举的双向映射.
+const WEAPON_BY_KEY := {
+	"unarmed": AssetWeapon.AssetWeapon_Unarmed,
+	"axe": AssetWeapon.AssetWeapon_Axe,
+	"bow": AssetWeapon.AssetWeapon_Bow,
+	"spear": AssetWeapon.AssetWeapon_Spear,
+	"stick": AssetWeapon.AssetWeapon_Stick,
+}
+
+const WEAPON_KEY_BY_VALUE := {
+	AssetWeapon.AssetWeapon_Unarmed: "unarmed",
+	AssetWeapon.AssetWeapon_Axe: "axe",
+	AssetWeapon.AssetWeapon_Bow: "bow",
+	AssetWeapon.AssetWeapon_Spear: "spear",
+	AssetWeapon.AssetWeapon_Stick: "stick",
+}
+
+static func orientation_from_key(key: String) -> int:
+	return int(ORIENTATION_BY_KEY.get(key, AssetOrientation.AssetOrientation_Unknown))
+
+static func orientation_to_key(orientation: int) -> String:
+	return str(ORIENTATION_KEY_BY_VALUE.get(orientation, ""))
+
+static func pet_action_from_key(key: String) -> int:
+	return int(PET_ACTION_BY_KEY.get(key, AssetPetAction.AssetPetAction_Unknown))
+
+static func pet_action_to_key(action: int) -> String:
+	return str(PET_ACTION_KEY_BY_VALUE.get(action, ""))
+
+static func character_action_from_key(key: String) -> int:
+	return int(CHARACTER_ACTION_BY_KEY.get(key, AssetCharacterAction.AssetCharacterAction_Unknown))
+
+static func character_action_to_key(action: int) -> String:
+	return str(CHARACTER_ACTION_KEY_BY_VALUE.get(action, ""))
+
+static func weapon_from_key(key: String) -> int:
+	return int(WEAPON_BY_KEY.get(key, AssetWeapon.AssetWeapon_Unknown))
+
+static func weapon_to_key(weapon: int) -> String:
+	return str(WEAPON_KEY_BY_VALUE.get(weapon, ""))
