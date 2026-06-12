@@ -15,6 +15,14 @@ const CONFIG_PET_PATH := "res://config/pet.yaml"
 const CONFIG_CHARACTER_PATH := "res://config/character.yaml"
 const CONFIG_ENEMY_GROUP_PATH := "res://config/enemy.group.yaml"
 
+# 宠物配置基础校验范围.
+# ConfigPet.load() 使用这些范围在启动阶段直接暴露非法 pet_id 或 rarity.
+const PET_ID_MIN := 4000101
+const PET_ID_MAX := 4999999
+const RARITY_MIN := 1
+const RARITY_MAX := 5
+const ELEMENT_KEYS := ["earth", "water", "fire", "wind"]
+
 # 宠物资源目录和偏移总表路径由资产管理器, 动画构建器和测试页共用.
 # 每个宠物仍使用同 ID 的 PNG 和 .tpsheet, offsets.json 可选保存 pet_id -> frame_id -> [x, y] 的偏移映射.
 # 资产管理器会根据宠物 ID 在 ASSET_PET_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
