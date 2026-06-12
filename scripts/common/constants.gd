@@ -153,7 +153,7 @@ const PET_ACTION_VALUES := [
 
 # 角色动作顺序用于角色动画构建兜底和角色偏移测试页.
 # 角色动作比宠物多武器类型维度, 但动画名仍使用 `动作_方向` 的组合规则.
-# CharacterAnimationBuilder 会在具体武器类型下读取这些动作对应的帧序列.
+# AnimationCharacterBuilder 会在具体武器类型下读取这些动作对应的帧序列.
 const CHARACTER_ACTIONS := [
 	"attack",
 	"wave",
