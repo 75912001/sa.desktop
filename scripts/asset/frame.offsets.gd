@@ -13,7 +13,7 @@
 # - frames 保存这个资源内部每一帧的额外绘制偏移.
 #
 # 这个结构只描述“偏移输入”, 不直接参与动画播放.
-# 真正给 AtlasFramePlayer 使用的是 TexturePackerFrame.draw_position,
+# 真正给 FramePlayer 使用的是 TexturePackerFrame.draw_position,
 # 它由 `.tpsheet` 的 margin.position 加上这里的帧偏移合成得到.
 class_name FrameOffsets
 extends RefCounted
