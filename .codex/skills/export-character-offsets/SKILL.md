@@ -1,18 +1,18 @@
 ---
 name: export-character-offsets
-description: Convert character offset text files exported by D:/软件/素材导出工具/导出素材 into assets/character/{characterid}.offsets.json for this Godot desktop pet project. Use when Codex needs to import, regenerate, validate, or update character animation offset JSON files from 偏移信息{characterid}.txt files.
+description: Convert character offset text files exported by D:/软件/素材导出工具/导出素材 into assets/character/offsets.json for this Godot desktop pet project. Use when Codex needs to import, regenerate, validate, or update character animation offset JSON from 偏移信息{characterid}.txt files.
 ---
 
 # Export Character Offsets
 
 ## Workflow
 
-Use this skill when character offset text files need to be converted into project JSON files for future offset-based character animation playback.
+Use this skill when character offset text files need to be converted into the project character offsets JSON for future offset-based character animation playback.
 
 1. Inspect the export directory and `assets/character`.
 2. Run the bundled script in dry-run mode first.
 3. If matching source files and `.tpsheet` frame counts agree, run the script without `--dry-run`.
-4. Verify generated JSON files and confirm no TexturePacker import artifacts were created.
+4. Verify the generated `assets/character/offsets.json` and confirm no TexturePacker import artifacts were created.
 
 ## Command
 
@@ -33,14 +33,15 @@ python .codex/skills/export-character-offsets/scripts/export_character_offsets.p
 ## Rules
 
 - Input filenames must match `偏移信息{characterid}.txt`.
-- Output files must be named `{characterid}.offsets.json` under `assets/character`.
-- Output JSON is a root-level frame-id map, for example `{ "10817": {"x": -21, "y": -57} }`.
+- Output file must be named `offsets.json` under `assets/character`.
+- Output JSON is a root-level character-id map, then a frame-id map, for example `{ "1000011": { "10817": [-21, -57] } }`.
+- Keep offsets as JSON, not YAML; JSON array values are compact and support non-contiguous frame ids.
 - Map offset rows to numeric frame ids from `{characterid}.tpsheet` sorted ascending.
 - Supplemental files named like `偏移信息(代表126235,126236,126237,126238 这四个图片, 是 1000063 的一部分).txt` are combined with the standard source file.
 - Fail a character if offset row count differs from `.tpsheet` frame count.
 - For supplemental files, map rows to the frame ids listed in the filename, and map the main file to the remaining sorted frame ids.
 - Skip and report characters that do not have both source offsets and `.tpsheet`.
-- Do not overwrite an existing offsets JSON unless explicitly requested with `--overwrite`.
+- Do not overwrite an existing offsets JSON unless explicitly requested with `--overwrite`; when an existing combined file is loaded, successfully exported characters are updated and skipped existing characters are kept.
 - Do not write source metadata into JSON; trace sources from file names and export logs.
 - Do not modify `config/character.yaml`, `project.godot`, `.godot/`, PNG files, `.tpsheet`, or plugin files.
 

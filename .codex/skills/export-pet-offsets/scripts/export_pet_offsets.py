@@ -13,6 +13,7 @@ from typing import Iterable
 
 DEFAULT_SOURCE_DIR = Path("D:/软件/素材导出工具/导出素材")
 DEFAULT_ASSET_DIR = Path("assets/pet")
+COMBINED_OUTPUT_NAME = "offsets.json"
 OFFSET_FILE_RE = re.compile(r"^偏移信息(?P<pet_id>\d+)\.txt$")
 
 
@@ -76,17 +77,69 @@ def discover_offset_files(source_dir: Path, pet_ids: set[str] | None) -> list[tu
     return discovered
 
 
-def build_payload(pet_id: str, source_file: Path, frame_ids: list[int], offsets: list[dict[str, int]]) -> dict:
+def build_payload(frame_ids: list[int], offsets: list[dict[str, int]]) -> dict[str, list[int]]:
     return {
-        "pet_id": int(pet_id),
-        "source_file": source_file.name,
-        "first_frame_id": frame_ids[0],
-        "frame_count": len(frame_ids),
-        "offsets": {
-            str(frame_id): offset
-            for frame_id, offset in zip(frame_ids, offsets)
-        },
+        str(frame_id): [int(offset["x"]), int(offset["y"])]
+        for frame_id, offset in zip(frame_ids, offsets)
     }
+
+
+def format_payload(payload: dict[str, list[int]]) -> str:
+    frame_keys = sorted(payload.keys(), key=int)
+    lines = ["{"]
+    for index, frame_key in enumerate(frame_keys):
+        comma = "," if index < len(frame_keys) - 1 else ""
+        offset_text = json.dumps(payload[frame_key], ensure_ascii=False, separators=(", ", ": "))
+        lines.append(f'  "{frame_key}": {offset_text}{comma}')
+    lines.append("}")
+    return "\n".join(lines) + "\n"
+
+
+def load_combined_payload(path: Path) -> dict[str, dict[str, list[int]]]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise RuntimeError(f"{path} 不是有效宠物 offsets 总表")
+
+    combined: dict[str, dict[str, list[int]]] = {}
+    for pet_id, raw_offsets in data.items():
+        if not str(pet_id).isdigit():
+            raise RuntimeError(f"{path} 包含非数字宠物 ID: {pet_id}")
+        if not isinstance(raw_offsets, dict):
+            raise RuntimeError(f"{path} 的宠物 {pet_id} 不是帧偏移映射")
+
+        offsets: dict[str, list[int]] = {}
+        for frame_id, raw_offset in raw_offsets.items():
+            if not str(frame_id).isdigit():
+                raise RuntimeError(f"{path} 的宠物 {pet_id} 包含非数字帧号: {frame_id}")
+            if isinstance(raw_offset, list) and len(raw_offset) >= 2:
+                offsets[str(int(frame_id))] = [int(raw_offset[0]), int(raw_offset[1])]
+            elif isinstance(raw_offset, dict):
+                offsets[str(int(frame_id))] = [int(raw_offset.get("x", 0)), int(raw_offset.get("y", 0))]
+            else:
+                raise RuntimeError(f"{path} 的宠物 {pet_id} 帧 {frame_id} 偏移格式不支持")
+        combined[str(int(pet_id))] = offsets
+
+    return combined
+
+
+def format_combined_payload(payload: dict[str, dict[str, list[int]]]) -> str:
+    pet_keys = sorted(payload.keys(), key=int)
+    lines = ["{"]
+    for pet_index, pet_id in enumerate(pet_keys):
+        pet_comma = "," if pet_index < len(pet_keys) - 1 else ""
+        lines.append(f'  "{pet_id}": {{')
+        frame_keys = sorted(payload[pet_id].keys(), key=int)
+        for frame_index, frame_key in enumerate(frame_keys):
+            frame_comma = "," if frame_index < len(frame_keys) - 1 else ""
+            offset_text = json.dumps(
+                payload[pet_id][frame_key],
+                ensure_ascii=False,
+                separators=(", ", ": "),
+            )
+            lines.append(f'    "{frame_key}": {offset_text}{frame_comma}')
+        lines.append(f"  }}{pet_comma}")
+    lines.append("}")
+    return "\n".join(lines) + "\n"
 
 
 def export_one(
@@ -95,14 +148,12 @@ def export_one(
     asset_dir: Path,
     *,
     dry_run: bool,
-    overwrite: bool,
-) -> bool:
+) -> tuple[str, dict[str, list[int]] | None]:
     tpsheet_path = asset_dir / f"{pet_id}.tpsheet"
-    output_path = asset_dir / f"{pet_id}.offsets.json"
 
     if not tpsheet_path.exists():
         print(f"[SKIP] pet={pet_id} 缺少 tpsheet: {tpsheet_path}")
-        return False
+        return "skip", None
 
     frame_ids = load_sorted_frame_ids(tpsheet_path)
     offsets = parse_offsets(source_file)
@@ -111,25 +162,16 @@ def export_one(
             f"[ERROR] pet={pet_id} frame_count={len(frame_ids)} "
             f"offset_count={len(offsets)} 文件行数不匹配"
         )
-        return False
-
-    if output_path.exists() and not overwrite:
-        print(f"[SKIP] pet={pet_id} 已存在: {output_path.name} (use --overwrite)")
-        return True
+        return "fail", None
 
     print(
         f"[OK] pet={pet_id} frames={len(frame_ids)} "
-        f"first={frame_ids[0]} last={frame_ids[-1]} -> {output_path.name}"
+        f"first={frame_ids[0]} last={frame_ids[-1]} -> {COMBINED_OUTPUT_NAME}:{pet_id}"
     )
     if dry_run:
-        return True
+        return "ok", {}
 
-    payload = build_payload(pet_id, source_file, frame_ids, offsets)
-    output_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    return True
+    return "ok", build_payload(frame_ids, offsets)
 
 
 def normalize_pet_ids(values: Iterable[str]) -> set[str] | None:
@@ -143,12 +185,12 @@ def normalize_pet_ids(values: Iterable[str]) -> set[str] | None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Export pet offsets JSON files.")
+    parser = argparse.ArgumentParser(description="Export the combined pet offsets JSON.")
     parser.add_argument("--source-dir", type=Path, default=DEFAULT_SOURCE_DIR)
     parser.add_argument("--asset-dir", type=Path, default=DEFAULT_ASSET_DIR)
     parser.add_argument("--pet-id", action="append", default=[], help="Pet id to export; can be repeated.")
     parser.add_argument("--dry-run", action="store_true", help="Validate and print actions without writing files.")
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing offsets JSON files.")
+    parser.add_argument("--overwrite", action="store_true", help="Overwrite the existing combined offsets JSON.")
     return parser.parse_args()
 
 
@@ -170,21 +212,43 @@ def main() -> int:
         print("[ERROR] 没有找到匹配的 偏移信息{petid}.txt")
         return 1
 
+    output_path = asset_dir / COMBINED_OUTPUT_NAME
+    if output_path.exists() and not args.overwrite and not args.dry_run:
+        print(f"[SKIP] 宠物 offsets 总表已存在: {output_path} (use --overwrite)")
+        return 0
+
+    combined_payload: dict[str, dict[str, list[int]]] = {}
+    if output_path.exists() and not args.dry_run:
+        combined_payload = load_combined_payload(output_path)
+
     ok_count = 0
+    skip_count = 0
     fail_count = 0
     for pet_id, source_file in discovered:
-        if export_one(
+        status, payload = export_one(
             pet_id,
             source_file,
             asset_dir,
             dry_run=args.dry_run,
-            overwrite=args.overwrite,
-        ):
+        )
+        if status == "ok":
             ok_count += 1
+            if not args.dry_run:
+                assert payload is not None
+                combined_payload[str(int(pet_id))] = payload
+        elif status == "skip":
+            skip_count += 1
         else:
             fail_count += 1
 
-    print(f"[DONE] ok={ok_count} failed={fail_count} dry_run={args.dry_run}")
+    if not args.dry_run and fail_count == 0 and ok_count > 0:
+        with output_path.open("w", encoding="utf-8", newline="\n") as file:
+            file.write(format_combined_payload(combined_payload))
+        print(f"[WRITE] {output_path}")
+    elif not args.dry_run and fail_count > 0:
+        print("[ERROR] 存在失败宠物, 未写入 offsets 总表")
+
+    print(f"[DONE] ok={ok_count} skipped={skip_count} failed={fail_count} dry_run={args.dry_run}")
     return 1 if fail_count else 0
 
 

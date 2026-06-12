@@ -1,18 +1,18 @@
 ---
 name: export-pet-offsets
-description: Convert pet offset text files exported by D:/软件/素材导出工具/导出素材 into assets/pet/{petid}.offsets.json for this Godot desktop pet project. Use when Codex needs to import, regenerate, validate, or update pet animation offset JSON files from 偏移信息{petid}.txt files.
+description: Convert pet offset text files exported by D:/软件/素材导出工具/导出素材 into assets/pet/offsets.json for this Godot desktop pet project. Use when Codex needs to import, regenerate, validate, or update pet animation offset JSON from 偏移信息{petid}.txt files.
 ---
 
 # Export Pet Offsets
 
 ## Workflow
 
-Use this skill when pet offset text files need to be converted into project JSON files for `AtlasFramePlayer`.
+Use this skill when pet offset text files need to be converted into the project pet offsets JSON for `AtlasFramePlayer`.
 
 1. Inspect the export directory and project asset directory.
 2. Run the bundled script in dry-run mode first.
 3. If counts match, run the script without `--dry-run`.
-4. Verify generated JSON files and confirm no TexturePacker import artifacts were created.
+4. Verify the generated `assets/pet/offsets.json` and confirm no TexturePacker import artifacts were created.
 
 ## Command
 
@@ -33,11 +33,15 @@ python .codex/skills/export-pet-offsets/scripts/export_pet_offsets.py --source-d
 ## Rules
 
 - Input filenames must match `偏移信息{petid}.txt`.
-- Output files must be named `{petid}.offsets.json` under `assets/pet`.
+- Output file must be named `offsets.json` under `assets/pet`.
+- Output JSON must be a root-level pet-id map, then a frame-id map, for example `{ "4000101": { "106923": [-26, -82] } }`.
+- Keep offsets as JSON, not YAML; JSON array values are compact and use Godot's built-in parser.
+- Write one frame offset record per line.
 - Map offset rows to numeric frame ids from `{petid}.tpsheet` sorted ascending.
+- Skip and report source files that do not have a matching `{petid}.tpsheet`.
 - Fail a pet if offset row count differs from `.tpsheet` frame count.
-- Do not overwrite an existing offsets JSON unless explicitly requested with `--overwrite`.
-- Do not write local absolute source paths into JSON; store only the source filename.
+- Do not overwrite an existing offsets JSON unless explicitly requested with `--overwrite`; when an existing combined file is loaded, successfully exported pets are updated and skipped existing pets are kept.
+- Do not write source metadata or local absolute source paths into JSON; trace sources by input filename and script logs.
 - Do not modify `config/pet.yaml`, `project.godot`, `.godot/`, PNG files, `.tpsheet`, or plugin files.
 
 ## Validation
