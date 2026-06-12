@@ -88,9 +88,9 @@ enum CharacterAction {
 	Max = 14,
 }
 
-# 角色武器枚举.
-# 角色 YAML 仍使用字符串武器名, 运行时 ConfigCharacter 使用这些枚举值做 Dictionary key.
-enum Weapon {
+# 角色武器类型枚举.
+# 角色 YAML 仍使用 weapon 字段下的字符串武器类型名, 运行时 ConfigCharacter 使用这些枚举值做 Dictionary key.
+enum WeaponType {
 	Unknown = 0,
 	Unarmed = 1,
 	Axe = 2,
@@ -152,8 +152,8 @@ const PET_ACTION_VALUES := [
 ]
 
 # 角色动作顺序用于角色动画构建兜底和角色偏移测试页.
-# 角色动作比宠物多武器维度, 但动画名仍使用 `动作_方向` 的组合规则.
-# CharacterAnimationBuilder 会在具体武器下读取这些动作对应的帧序列.
+# 角色动作比宠物多武器类型维度, 但动画名仍使用 `动作_方向` 的组合规则.
+# CharacterAnimationBuilder 会在具体武器类型下读取这些动作对应的帧序列.
 const CHARACTER_ACTIONS := [
 	"attack",
 	"wave",
@@ -187,8 +187,8 @@ const CHARACTER_ACTION_VALUES := [
 	CharacterAction.Happy,
 ]
 
-# 角色武器顺序用于配置完整性校验和角色偏移测试页展示.
-const CHARACTER_WEAPONS := [
+# 角色武器类型顺序用于配置完整性校验和角色偏移测试页展示.
+const CHARACTER_WEAPON_TYPES := [
 	"unarmed",
 	"axe",
 	"bow",
@@ -196,13 +196,13 @@ const CHARACTER_WEAPONS := [
 	"stick",
 ]
 
-# 运行时内部使用的角色武器枚举顺序, 与 CHARACTER_WEAPONS 字符串顺序一一对应.
-const CHARACTER_WEAPON_VALUES := [
-	Weapon.Unarmed,
-	Weapon.Axe,
-	Weapon.Bow,
-	Weapon.Spear,
-	Weapon.Stick,
+# 运行时内部使用的角色武器类型枚举顺序, 与 CHARACTER_WEAPON_TYPES 字符串顺序一一对应.
+const CHARACTER_WEAPON_TYPE_VALUES := [
+	WeaponType.Unarmed,
+	WeaponType.Axe,
+	WeaponType.Bow,
+	WeaponType.Spear,
+	WeaponType.Stick,
 ]
 
 # 方向字符串协议和运行时枚举的双向映射.
@@ -283,21 +283,21 @@ const CHARACTER_ACTION_KEY_BY_VALUE := {
 	CharacterAction.Happy: "happy",
 }
 
-# 武器字符串协议和运行时枚举的双向映射.
-const WEAPON_BY_KEY := {
-	"unarmed": Weapon.Unarmed,
-	"axe": Weapon.Axe,
-	"bow": Weapon.Bow,
-	"spear": Weapon.Spear,
-	"stick": Weapon.Stick,
+# 武器类型字符串协议和运行时枚举的双向映射.
+const WEAPON_TYPE_BY_KEY := {
+	"unarmed": WeaponType.Unarmed,
+	"axe": WeaponType.Axe,
+	"bow": WeaponType.Bow,
+	"spear": WeaponType.Spear,
+	"stick": WeaponType.Stick,
 }
 
-const WEAPON_KEY_BY_VALUE := {
-	Weapon.Unarmed: "unarmed",
-	Weapon.Axe: "axe",
-	Weapon.Bow: "bow",
-	Weapon.Spear: "spear",
-	Weapon.Stick: "stick",
+const WEAPON_TYPE_KEY_BY_VALUE := {
+	WeaponType.Unarmed: "unarmed",
+	WeaponType.Axe: "axe",
+	WeaponType.Bow: "bow",
+	WeaponType.Spear: "spear",
+	WeaponType.Stick: "stick",
 }
 
 static func direction_from_key(key: String) -> int:
@@ -318,8 +318,8 @@ static func character_action_from_key(key: String) -> int:
 static func character_action_to_key(action: int) -> String:
 	return str(CHARACTER_ACTION_KEY_BY_VALUE.get(action, ""))
 
-static func weapon_from_key(key: String) -> int:
-	return int(WEAPON_BY_KEY.get(key, Weapon.Unknown))
+static func weapon_type_from_key(key: String) -> int:
+	return int(WEAPON_TYPE_BY_KEY.get(key, WeaponType.Unknown))
 
-static func weapon_to_key(weapon: int) -> String:
-	return str(WEAPON_KEY_BY_VALUE.get(weapon, ""))
+static func weapon_type_to_key(weapon: int) -> String:
+	return str(WEAPON_TYPE_KEY_BY_VALUE.get(weapon, ""))

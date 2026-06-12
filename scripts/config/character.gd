@@ -4,12 +4,12 @@ extends RefCounted
 # 统一读取 config/character.yaml 的角色配置.
 # 这个类使用 MiniYAML 解析 YAML, 只消费 character: 段, 并转换成结构化角色条目.
 
-# 角色某个方向, 武器和动作组合下的帧配置.
+# 角色某个方向, 武器类型和动作组合下的帧配置.
 # key 由 Entry.frame_entries 使用 Vector3i(direction, weapon, action) 直接定位,
-# 避免运行时先取方向或武器对象, 再取动作字典的多层包装.
+# 避免运行时先取方向或武器类型对象, 再取动作字典的多层包装.
 class FrameDirectionWeaponActionEntry extends RefCounted:
     var direction: int = Constants.Direction.Unknown
-    var weapon: int = Constants.Weapon.Unknown
+    var weapon: int = Constants.WeaponType.Unknown
     var action: int = Constants.CharacterAction.Unknown
     var frame_ids: Array = []
 
@@ -21,7 +21,7 @@ class Entry extends RefCounted:
     var description: String
     var color: String
     # Vector3i(direction, weapon, action) -> FrameDirectionWeaponActionEntry.
-    # 角色资源要求每个方向, 武器和动作组合都存在, 因此上层构建动画时可直接定位帧号表.
+    # 角色资源要求每个方向, 武器类型和动作组合都存在, 因此上层构建动画时可直接定位帧号表.
     var frame_entries: Dictionary = {}
     # 这里保存 AssetCharacterMgr 启动阶段创建的 AssetCharacterMgr.Entry 引用.
     # 它不是资源数据拷贝, 只是同一个 RefCounted 对象引用, 便于动画构建器从角色配置直接拿到 PNG 路径和帧表.
@@ -67,16 +67,16 @@ func load() -> void:
         assert(raw_frame is Dictionary, "角色 frame 须为对象: character:%d" % character.id)
         if raw_frame is Dictionary:
             # YAML frame 源结构是 weapon -> direction -> action -> frame ids.
-            # 这里把 direction, weapon 和 action 一起收敛成 FrameDirectionWeaponActionEntry, 上层可直接定位帧号表.
+            # 这里把 direction, weapon 和 action 一起收敛成 FrameDirectionWeaponActionEntry, 上层可直接定位帧号表; weapon 是配置字段名, 语义是武器类型.
             var frame_dict := raw_frame as Dictionary
             for weapon in frame_dict.keys():
-                var weapon_value := Constants.weapon_from_key(str(weapon))
-                assert(weapon_value != Constants.Weapon.Unknown, "角色 frame 武器未知: character:%d weapon:%s" % [character.id, str(weapon)])
-                if weapon_value == Constants.Weapon.Unknown:
+                var weapon_value := Constants.weapon_type_from_key(str(weapon))
+                assert(weapon_value != Constants.WeaponType.Unknown, "角色 frame 武器类型未知: character:%d weapon:%s" % [character.id, str(weapon)])
+                if weapon_value == Constants.WeaponType.Unknown:
                     continue
 
                 var weapon_data = frame_dict[weapon]
-                assert(weapon_data is Dictionary, "角色 frame 武器配置须为对象: character:%d weapon:%s" % [character.id, str(weapon)])
+                assert(weapon_data is Dictionary, "角色 frame 武器类型配置须为对象: character:%d weapon:%s" % [character.id, str(weapon)])
                 if not (weapon_data is Dictionary):
                     continue
 
@@ -114,13 +114,13 @@ func load() -> void:
                         frame_entry.action = action_value
                         frame_entry.frame_ids = parsed_frame_ids
                         var frame_key := Vector3i(frame_entry.direction, frame_entry.weapon, frame_entry.action)
-                        assert(not frame_entries.has(frame_key), "角色 frame 方向武器动作重复: character:%d direction:%s weapon:%s action:%s" % [character.id, str(direction_key), str(weapon), str(action)])
+                        assert(not frame_entries.has(frame_key), "角色 frame 方向武器类型动作重复: character:%d direction:%s weapon:%s action:%s" % [character.id, str(direction_key), str(weapon), str(action)])
                         frame_entries[frame_key] = frame_entry
 
-        for required_weapon in Constants.CHARACTER_WEAPON_VALUES:
+        for required_weapon in Constants.CHARACTER_WEAPON_TYPE_VALUES:
             for required_direction in Constants.DIRECTION_VALUES:
                 for required_action in Constants.CHARACTER_ACTION_VALUES:
-                    assert(frame_entries.has(Vector3i(int(required_direction), int(required_weapon), int(required_action))), "角色 frame 缺少方向武器动作: character:%d direction:%s weapon:%s action:%s" % [character.id, Constants.direction_to_key(int(required_direction)), Constants.weapon_to_key(int(required_weapon)), Constants.character_action_to_key(int(required_action))])
+                    assert(frame_entries.has(Vector3i(int(required_direction), int(required_weapon), int(required_action))), "角色 frame 缺少方向武器类型动作: character:%d direction:%s weapon:%s action:%s" % [character.id, Constants.direction_to_key(int(required_direction)), Constants.weapon_type_to_key(int(required_weapon)), Constants.character_action_to_key(int(required_action))])
         character.frame_entries = frame_entries
 
         # ID 是角色配置和 assets/character 资源文件名的连接点.
@@ -164,7 +164,7 @@ func check() -> void:
         for frame_value in character.frame_entries.values():
             var frame_entry := frame_value as FrameDirectionWeaponActionEntry
             assert(frame_entry != null, "角色 frame entry 类型非法: character:%d" % int(character_id))
-            var weapon_key := Constants.weapon_to_key(frame_entry.weapon)
+            var weapon_key := Constants.weapon_type_to_key(frame_entry.weapon)
             var direction_key := Constants.direction_to_key(frame_entry.direction)
             var action_key := Constants.character_action_to_key(frame_entry.action)
             for frame_id in frame_entry.frame_ids:
