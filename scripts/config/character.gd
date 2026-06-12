@@ -5,10 +5,10 @@ extends RefCounted
 # 这个类使用 MiniYAML 解析 YAML, 只消费 character: 段, 并转换成结构化角色条目.
 
 # 角色某个方向, 武器和动作组合下的帧配置.
-# key 由 Entry.sprite_entries 使用 Vector3i(orientation, weapon, action) 直接定位,
+# key 由 Entry.frame_entries 使用 Vector3i(direction, weapon, action) 直接定位,
 # 避免运行时先取方向或武器对象, 再取动作字典的多层包装.
-class SpriteDirectionWeaponActionEntry extends RefCounted:
-    var orientation: int = Constants.AssetOrientation.AssetOrientation_Unknown
+class FrameDirectionWeaponActionEntry extends RefCounted:
+    var direction: int = Constants.AssetDirection.AssetDirection_Unknown
     var weapon: int = Constants.AssetWeapon.AssetWeapon_Unknown
     var action: int = Constants.AssetCharacterAction.AssetCharacterAction_Unknown
     var frame_ids: Array = []
@@ -20,15 +20,15 @@ class Entry extends RefCounted:
     var is_role: bool
     var description: String
     var color: String
-    # Vector3i(orientation, weapon, action) -> SpriteDirectionWeaponActionEntry.
+    # Vector3i(direction, weapon, action) -> FrameDirectionWeaponActionEntry.
     # 角色资源要求每个方向, 武器和动作组合都存在, 因此上层构建动画时可直接定位帧号表.
-    var sprite_entries: Dictionary = {}
+    var frame_entries: Dictionary = {}
     # 这里保存 AssetCharacterMgr 启动阶段创建的 AssetCharacterMgr.Entry 引用.
     # 它不是资源数据拷贝, 只是同一个 RefCounted 对象引用, 便于动画构建器从角色配置直接拿到 PNG 路径和帧表.
     var asset: AssetCharacterMgr.Entry
 
-    func get_sprite_entry(orientation: int, weapon: int, action: int) -> SpriteDirectionWeaponActionEntry:
-        return sprite_entries.get(Vector3i(orientation, weapon, action), null) as SpriteDirectionWeaponActionEntry
+    func get_frame_entry(direction: int, weapon: int, action: int) -> FrameDirectionWeaponActionEntry:
+        return frame_entries.get(Vector3i(direction, weapon, action), null) as FrameDirectionWeaponActionEntry
 
 # 按角色 ID 建立的主缓存.
 # 配置加载后常驻内存只保留这一份 id -> Entry.
@@ -53,7 +53,7 @@ func load() -> void:
             continue
 
         # 基础字段只做类型收敛和默认值处理.
-        # 字段之间的引用关系, 例如 sprite 帧是否存在于资源中, 放到 check() 阶段统一处理.
+        # 字段之间的引用关系, 例如 frame 是否存在于资源中, 放到 check() 阶段统一处理.
         var raw_character_dict := raw_character as Dictionary
         var character := Entry.new()
         character.id = int(raw_character_dict.get("id", 0))
@@ -62,45 +62,45 @@ func load() -> void:
         character.description = str(raw_character_dict.get("description", ""))
         character.color = str(raw_character_dict.get("color", ""))
 
-        var raw_sprite = raw_character_dict.get("sprite", {})
-        var sprite_entries := {}
-        assert(raw_sprite is Dictionary, "角色 sprite 须为对象: character:%d" % character.id)
-        if raw_sprite is Dictionary:
-            # YAML sprite 源结构是 weapon -> direction -> action -> frame ids.
-            # 这里把 direction, weapon 和 action 一起收敛成 SpriteDirectionWeaponActionEntry, 上层可直接定位帧号表.
-            var sprite_dict := raw_sprite as Dictionary
-            for weapon in sprite_dict.keys():
+        var raw_frame = raw_character_dict.get("sprite", {})
+        var frame_entries := {}
+        assert(raw_frame is Dictionary, "角色 frame 须为对象: character:%d" % character.id)
+        if raw_frame is Dictionary:
+            # YAML frame 源结构是 weapon -> direction -> action -> frame ids.
+            # 这里把 direction, weapon 和 action 一起收敛成 FrameDirectionWeaponActionEntry, 上层可直接定位帧号表.
+            var frame_dict := raw_frame as Dictionary
+            for weapon in frame_dict.keys():
                 var weapon_value := Constants.weapon_from_key(str(weapon))
-                assert(weapon_value != Constants.AssetWeapon.AssetWeapon_Unknown, "角色 sprite 武器未知: character:%d weapon:%s" % [character.id, str(weapon)])
+                assert(weapon_value != Constants.AssetWeapon.AssetWeapon_Unknown, "角色 frame 武器未知: character:%d weapon:%s" % [character.id, str(weapon)])
                 if weapon_value == Constants.AssetWeapon.AssetWeapon_Unknown:
                     continue
 
-                var weapon_data = sprite_dict[weapon]
-                assert(weapon_data is Dictionary, "角色 sprite 武器配置须为对象: character:%d weapon:%s" % [character.id, str(weapon)])
+                var weapon_data = frame_dict[weapon]
+                assert(weapon_data is Dictionary, "角色 frame 武器配置须为对象: character:%d weapon:%s" % [character.id, str(weapon)])
                 if not (weapon_data is Dictionary):
                     continue
 
                 var weapon_dict := weapon_data as Dictionary
-                for direction in weapon_dict.keys():
-                    var orientation := Constants.orientation_from_key(str(direction))
-                    assert(orientation != Constants.AssetOrientation.AssetOrientation_Unknown, "角色 sprite 方向未知: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction)])
-                    if orientation == Constants.AssetOrientation.AssetOrientation_Unknown:
+                for direction_key in weapon_dict.keys():
+                    var direction := Constants.direction_from_key(str(direction_key))
+                    assert(direction != Constants.AssetDirection.AssetDirection_Unknown, "角色 frame 方向未知: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction_key)])
+                    if direction == Constants.AssetDirection.AssetDirection_Unknown:
                         continue
 
-                    var direction_data = weapon_dict[direction]
-                    assert(direction_data is Dictionary, "角色 sprite 方向配置须为对象: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction)])
+                    var direction_data = weapon_dict[direction_key]
+                    assert(direction_data is Dictionary, "角色 frame 方向配置须为对象: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction_key)])
                     if not (direction_data is Dictionary):
                         continue
 
                     var direction_dict := direction_data as Dictionary
                     for action in direction_dict.keys():
                         var action_value := Constants.character_action_from_key(str(action))
-                        assert(action_value != Constants.AssetCharacterAction.AssetCharacterAction_Unknown, "角色 sprite 动作未知: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction), str(action)])
+                        assert(action_value != Constants.AssetCharacterAction.AssetCharacterAction_Unknown, "角色 frame 动作未知: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction_key), str(action)])
                         if action_value == Constants.AssetCharacterAction.AssetCharacterAction_Unknown:
                             continue
 
                         var frame_ids = direction_dict[action]
-                        assert(frame_ids is Array, "角色 sprite 动作配置须为帧号数组: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction), str(action)])
+                        assert(frame_ids is Array, "角色 frame 动作配置须为帧号数组: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction_key), str(action)])
                         if not (frame_ids is Array):
                             continue
 
@@ -108,20 +108,20 @@ func load() -> void:
                         for frame_id_raw in frame_ids:
                             parsed_frame_ids.append(int(frame_id_raw))
 
-                        var sprite_entry := SpriteDirectionWeaponActionEntry.new()
-                        sprite_entry.orientation = orientation
-                        sprite_entry.weapon = weapon_value
-                        sprite_entry.action = action_value
-                        sprite_entry.frame_ids = parsed_frame_ids
-                        var sprite_key := Vector3i(sprite_entry.orientation, sprite_entry.weapon, sprite_entry.action)
-                        assert(not sprite_entries.has(sprite_key), "角色 sprite 方向武器动作重复: character:%d direction:%s weapon:%s action:%s" % [character.id, str(direction), str(weapon), str(action)])
-                        sprite_entries[sprite_key] = sprite_entry
+                        var frame_entry := FrameDirectionWeaponActionEntry.new()
+                        frame_entry.direction = direction
+                        frame_entry.weapon = weapon_value
+                        frame_entry.action = action_value
+                        frame_entry.frame_ids = parsed_frame_ids
+                        var frame_key := Vector3i(frame_entry.direction, frame_entry.weapon, frame_entry.action)
+                        assert(not frame_entries.has(frame_key), "角色 frame 方向武器动作重复: character:%d direction:%s weapon:%s action:%s" % [character.id, str(direction_key), str(weapon), str(action)])
+                        frame_entries[frame_key] = frame_entry
 
         for required_weapon in Constants.CHARACTER_WEAPON_VALUES:
-            for required_orientation in Constants.ORIENTATION_VALUES:
+            for required_direction in Constants.DIRECTION_VALUES:
                 for required_action in Constants.CHARACTER_ACTION_VALUES:
-                    assert(sprite_entries.has(Vector3i(int(required_orientation), int(required_weapon), int(required_action))), "角色 sprite 缺少方向武器动作: character:%d direction:%s weapon:%s action:%s" % [character.id, Constants.orientation_to_key(int(required_orientation)), Constants.weapon_to_key(int(required_weapon)), Constants.character_action_to_key(int(required_action))])
-        character.sprite_entries = sprite_entries
+                    assert(frame_entries.has(Vector3i(int(required_direction), int(required_weapon), int(required_action))), "角色 frame 缺少方向武器动作: character:%d direction:%s weapon:%s action:%s" % [character.id, Constants.direction_to_key(int(required_direction)), Constants.weapon_to_key(int(required_weapon)), Constants.character_action_to_key(int(required_action))])
+        character.frame_entries = frame_entries
 
         # ID 是角色配置和 assets/character 资源文件名的连接点.
         # 非法或重复 ID 会让后续资源校验失去确定目标, 因此在写入缓存前立刻拦截.
@@ -160,15 +160,15 @@ func check() -> void:
             continue
 
         # 逐帧检查 YAML 动作表和 TexturePacker 帧表是否对齐.
-        # 缺帧通常说明 character.yaml 写错帧号, 或对应 .tpsheet 没有导出该 sprite.
-        for sprite_value in character.sprite_entries.values():
-            var sprite_entry := sprite_value as SpriteDirectionWeaponActionEntry
-            assert(sprite_entry != null, "角色 sprite entry 类型非法: character:%d" % int(character_id))
-            var weapon_key := Constants.weapon_to_key(sprite_entry.weapon)
-            var direction_key := Constants.orientation_to_key(sprite_entry.orientation)
-            var action_key := Constants.character_action_to_key(sprite_entry.action)
-            for frame_id in sprite_entry.frame_ids:
-                assert(character_asset.sheet_frames.has(int(frame_id)), "角色 sprite 引用了不存在的可播放帧: character:%d weapon:%s direction:%s action:%s frame:%d" % [int(character_id), weapon_key, direction_key, action_key, int(frame_id)])
+        # 缺帧通常说明 character.yaml 写错帧号, 或对应 .tpsheet 没有导出该 frame.
+        for frame_value in character.frame_entries.values():
+            var frame_entry := frame_value as FrameDirectionWeaponActionEntry
+            assert(frame_entry != null, "角色 frame entry 类型非法: character:%d" % int(character_id))
+            var weapon_key := Constants.weapon_to_key(frame_entry.weapon)
+            var direction_key := Constants.direction_to_key(frame_entry.direction)
+            var action_key := Constants.character_action_to_key(frame_entry.action)
+            for frame_id in frame_entry.frame_ids:
+                assert(character_asset.sheet_frames.has(int(frame_id)), "角色 frame 引用了不存在的可播放帧: character:%d weapon:%s direction:%s action:%s frame:%d" % [int(character_id), weapon_key, direction_key, action_key, int(frame_id)])
 
 # 配置管理流程的第三步.
 # 这里把 Entry 和同 ID AssetCharacterMgr.Entry 组装到一起.

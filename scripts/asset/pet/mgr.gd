@@ -127,17 +127,17 @@ func load() -> void:
 			if not (sheet is Dictionary):
 				continue
 
-			for sprite in sheet.get("sprites", []):
-				if not (sprite is Dictionary):
+			for raw_frame in sheet.get("sprites", []):
+				if not (raw_frame is Dictionary):
 					continue
 
-				var sheet_frame_key := str(sprite.get("filename", ""))
+				var sheet_frame_key := str(raw_frame.get("filename", ""))
 				if sheet_frame_key.is_empty():
 					continue
 
 				var frame_id := int(sheet_frame_key)
-				var region: Dictionary = sprite.get("region", {})
-				var margin: Dictionary = sprite.get("margin", {})
+				var region: Dictionary = raw_frame.get("region", {})
+				var margin: Dictionary = raw_frame.get("margin", {})
 				var margin_rect := AssetParse.rect_from_texturepacker_data(margin)
 				var offset := entry_offsets.get_frame_offset(frame_id) if entry_offsets != null else Vector2i.ZERO
 				var frame := TexturePackerFrame.new()

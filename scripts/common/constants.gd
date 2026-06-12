@@ -39,19 +39,19 @@ const CHARACTER_OFFSETS_PATH := "res://assets/character/offsets.json"
 # 实际画布大小仍由帧 region, margin 和可选 offsets 计算得出; 这里不是宠物体型上限, 只是统一额外边距.
 const ANIMATION_PADDING := Vector2(24.0, 24.0)
 
-# 资产朝向枚举.
+# 资产方向枚举.
 # 编号先在 GDScript 中固定为 protobuf 风格, 后续如果接入真实 `.proto`, 需要保持这些数值不变.
-enum AssetOrientation {
-	AssetOrientation_Unknown = 0,
-	AssetOrientation_Up = 1,
-	AssetOrientation_UpRight = 2,
-	AssetOrientation_Right = 3,
-	AssetOrientation_DownRight = 4,
-	AssetOrientation_Down = 5,
-	AssetOrientation_DownLeft = 6,
-	AssetOrientation_Left = 7,
-	AssetOrientation_UpLeft = 8,
-	AssetOrientation_Max = 9,
+enum AssetDirection {
+	AssetDirection_Unknown = 0,
+	AssetDirection_Up = 1,
+	AssetDirection_UpRight = 2,
+	AssetDirection_Right = 3,
+	AssetDirection_DownRight = 4,
+	AssetDirection_Down = 5,
+	AssetDirection_DownLeft = 6,
+	AssetDirection_Left = 7,
+	AssetDirection_UpLeft = 8,
+	AssetDirection_Max = 9,
 }
 
 # 宠物动作枚举.
@@ -116,15 +116,15 @@ const DIRECTIONS := [
 ]
 
 # 运行时内部使用的方向枚举顺序, 与 DIRECTIONS 字符串顺序一一对应.
-const ORIENTATION_VALUES := [
-	AssetOrientation.AssetOrientation_Down,
-	AssetOrientation.AssetOrientation_DownLeft,
-	AssetOrientation.AssetOrientation_Left,
-	AssetOrientation.AssetOrientation_UpLeft,
-	AssetOrientation.AssetOrientation_Up,
-	AssetOrientation.AssetOrientation_UpRight,
-	AssetOrientation.AssetOrientation_Right,
-	AssetOrientation.AssetOrientation_DownRight,
+const DIRECTION_VALUES := [
+	AssetDirection.AssetDirection_Down,
+	AssetDirection.AssetDirection_DownLeft,
+	AssetDirection.AssetDirection_Left,
+	AssetDirection.AssetDirection_UpLeft,
+	AssetDirection.AssetDirection_Up,
+	AssetDirection.AssetDirection_UpRight,
+	AssetDirection.AssetDirection_Right,
+	AssetDirection.AssetDirection_DownRight,
 ]
 
 # 宠物动作顺序用于托盘菜单、动画构建兜底和宠物偏移测试页.
@@ -207,26 +207,26 @@ const CHARACTER_WEAPON_VALUES := [
 
 # 方向字符串协议和运行时枚举的双向映射.
 # YAML, 托盘菜单和动画名使用字符串; 配置对象内部使用枚举值.
-const ORIENTATION_BY_KEY := {
-	"up": AssetOrientation.AssetOrientation_Up,
-	"upright": AssetOrientation.AssetOrientation_UpRight,
-	"right": AssetOrientation.AssetOrientation_Right,
-	"downright": AssetOrientation.AssetOrientation_DownRight,
-	"down": AssetOrientation.AssetOrientation_Down,
-	"downleft": AssetOrientation.AssetOrientation_DownLeft,
-	"left": AssetOrientation.AssetOrientation_Left,
-	"upleft": AssetOrientation.AssetOrientation_UpLeft,
+const DIRECTION_BY_KEY := {
+	"up": AssetDirection.AssetDirection_Up,
+	"upright": AssetDirection.AssetDirection_UpRight,
+	"right": AssetDirection.AssetDirection_Right,
+	"downright": AssetDirection.AssetDirection_DownRight,
+	"down": AssetDirection.AssetDirection_Down,
+	"downleft": AssetDirection.AssetDirection_DownLeft,
+	"left": AssetDirection.AssetDirection_Left,
+	"upleft": AssetDirection.AssetDirection_UpLeft,
 }
 
-const ORIENTATION_KEY_BY_VALUE := {
-	AssetOrientation.AssetOrientation_Up: "up",
-	AssetOrientation.AssetOrientation_UpRight: "upright",
-	AssetOrientation.AssetOrientation_Right: "right",
-	AssetOrientation.AssetOrientation_DownRight: "downright",
-	AssetOrientation.AssetOrientation_Down: "down",
-	AssetOrientation.AssetOrientation_DownLeft: "downleft",
-	AssetOrientation.AssetOrientation_Left: "left",
-	AssetOrientation.AssetOrientation_UpLeft: "upleft",
+const DIRECTION_KEY_BY_VALUE := {
+	AssetDirection.AssetDirection_Up: "up",
+	AssetDirection.AssetDirection_UpRight: "upright",
+	AssetDirection.AssetDirection_Right: "right",
+	AssetDirection.AssetDirection_DownRight: "downright",
+	AssetDirection.AssetDirection_Down: "down",
+	AssetDirection.AssetDirection_DownLeft: "downleft",
+	AssetDirection.AssetDirection_Left: "left",
+	AssetDirection.AssetDirection_UpLeft: "upleft",
 }
 
 # 宠物动作字符串协议和运行时枚举的双向映射.
@@ -300,11 +300,11 @@ const WEAPON_KEY_BY_VALUE := {
 	AssetWeapon.AssetWeapon_Stick: "stick",
 }
 
-static func orientation_from_key(key: String) -> int:
-	return int(ORIENTATION_BY_KEY.get(key, AssetOrientation.AssetOrientation_Unknown))
+static func direction_from_key(key: String) -> int:
+	return int(DIRECTION_BY_KEY.get(key, AssetDirection.AssetDirection_Unknown))
 
-static func orientation_to_key(orientation: int) -> String:
-	return str(ORIENTATION_KEY_BY_VALUE.get(orientation, ""))
+static func direction_to_key(direction: int) -> String:
+	return str(DIRECTION_KEY_BY_VALUE.get(direction, ""))
 
 static func pet_action_from_key(key: String) -> int:
 	return int(PET_ACTION_BY_KEY.get(key, AssetPetAction.AssetPetAction_Unknown))
