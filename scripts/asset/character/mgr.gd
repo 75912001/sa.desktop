@@ -12,7 +12,7 @@ extends RefCounted
 
 # 单个角色资源的索引条目.
 # 启动时只加载资源元数据, 真实图集纹理由动画构建器按需加载.
-class AssetCharacterEntry extends RefCounted:
+class Entry extends RefCounted:
 	# 角色资源 ID, 对应 config/character.yaml 中的 character.id.
 	var id: int
 	# PNG 图集路径. 这里只保存路径, 不在启动阶段加载 Texture2D.
@@ -25,11 +25,11 @@ class AssetCharacterEntry extends RefCounted:
 	# 这里不再保存 `.tpsheet` 原始 JSON, 也不保存 offsets 原始表, 启动解析后就收敛成可播放帧数据.
 	var sheet_frames: Dictionary = {}
 
-# character_id -> AssetCharacterEntry.
+# character_id -> Entry.
 # ConfigManager 启动时只加载这一份索引, 后续配置校验和动画构建器都通过它查询资源.
-# 这个索引的 key 来自 PNG 文件名, 因此 `get_asset(character_id) != null` 就表示同 ID PNG 存在.
+# 这个索引的 key 来自 PNG 文件名, 因此 `get(character_id) != null` 就表示同 ID PNG 存在.
 # `.tpsheet` 或 offsets 不会反向创建角色条目, 避免孤立配置文件被误认为可播放角色.
-var _assets_by_id: Dictionary = {}
+var _by_id: Dictionary = {}
 
 # 以 PNG 文件中的角色 ID 为主导扫描角色资源目录, 再读取可选 offsets 总表补充绘制偏移.
 # `.tpsheet` 只服务于已经存在 PNG 的角色, 不反向创建角色资源条目.
@@ -60,11 +60,11 @@ func load() -> void:
 		if png_character_id <= 0:
 			continue
 
-		assert(not _assets_by_id.has(png_character_id), "角色 PNG 资源 ID 重复: %d" % png_character_id)
-		var png_entry := AssetCharacterEntry.new()
+		assert(not _by_id.has(png_character_id), "角色 PNG 资源 ID 重复: %d" % png_character_id)
+		var png_entry := Entry.new()
 		png_entry.id = png_character_id
 		png_entry.png_path = "%s/%s" % [Constants.ASSET_CHARACTER_DIR, current_file_name]
-		_assets_by_id[png_character_id] = png_entry
+		_by_id[png_character_id] = png_entry
 
 	# 第三步: 读取可选 offsets 总表.
 	# offsets JSON 只作为 `.tpsheet` 合成 draw_position 的输入; 总表不存在时使用空字典, 表示所有帧都没有额外偏移.
@@ -101,10 +101,10 @@ func load() -> void:
 			continue
 
 		var sheet_character_id := AssetParse.id_from_suffix(current_file_name, ".tpsheet")
-		if sheet_character_id <= 0 or not _assets_by_id.has(sheet_character_id):
+		if sheet_character_id <= 0 or not _by_id.has(sheet_character_id):
 			continue
 
-		var sheet_entry: AssetCharacterEntry = _assets_by_id[sheet_character_id]
+		var sheet_entry: Entry = _by_id[sheet_character_id]
 		var sheet_path := "%s/%s" % [Constants.ASSET_CHARACTER_DIR, current_file_name]
 		var sheet_file := FileAccess.open(sheet_path, FileAccess.READ)
 		if sheet_file == null:
@@ -149,9 +149,9 @@ func load() -> void:
 
 	# 第五步: 检查本次角色资源加载结果.
 	# 角色资源以 PNG 为主导; 只要目录里存在 `{character_id}.png`, 同 ID `.tpsheet` 就必须可解析.
-	assert(not _assets_by_id.is_empty(), "角色资源目录没有加载到任何 PNG: %s" % Constants.ASSET_CHARACTER_DIR)
-	for loaded_character_id in _assets_by_id.keys():
-		var loaded_entry: AssetCharacterEntry = _assets_by_id[loaded_character_id]
+	assert(not _by_id.is_empty(), "角色资源目录没有加载到任何 PNG: %s" % Constants.ASSET_CHARACTER_DIR)
+	for loaded_character_id in _by_id.keys():
+		var loaded_entry: Entry = _by_id[loaded_character_id]
 		var missing_sources: Array[String] = []
 		if loaded_entry.png_path.is_empty():
 			missing_sources.append("png")
@@ -160,7 +160,7 @@ func load() -> void:
 		assert(missing_sources.is_empty(), "角色资源不完整: character:%d missing:%s" % [int(loaded_character_id), str(missing_sources)])
 
 # 按角色 ID 返回已加载的角色资源条目.
-func get_asset(character_id: int) -> AssetCharacterEntry:
+func get(character_id: int) -> Entry:
 	# 返回启动阶段建立的索引条目; 不存在时返回 null, 调用方据此输出缺资源错误.
 	# 这里不自动创建条目, 因为角色资源必须以 PNG 文件为主导.
-	return _assets_by_id.get(character_id, null)
+	return _by_id.get(character_id, null)

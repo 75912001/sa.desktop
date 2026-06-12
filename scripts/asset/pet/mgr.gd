@@ -12,7 +12,7 @@ extends RefCounted
 
 # 单个宠物资源的索引条目.
 # 启动时只加载资源元数据, 真实图集纹理由动画构建器按需加载.
-class AssetPetEntry extends RefCounted:
+class Entry extends RefCounted:
 	# 宠物资源 ID, 对应 config/pet.yaml 中的 pet.id.
 	var id: int
 	# PNG 图集路径. 这里只保存路径, 不在启动阶段加载 Texture2D.
@@ -25,18 +25,18 @@ class AssetPetEntry extends RefCounted:
 	# 这里不保存 `.tpsheet` 原始 JSON, 也不保存 offsets 原始表, 启动解析后就收敛成可播放帧数据.
 	var sheet_frames: Dictionary = {}
 
-# pet_id -> AssetPetEntry.
+# pet_id -> Entry.
 # ConfigManager 启动时只加载这一份索引, 后续配置校验和动画构建器都通过它查询资源.
-# 这个索引的 key 来自 PNG 文件名, 因此 `get_asset(pet_id) != null` 就表示同 ID PNG 存在.
+# 这个索引的 key 来自 PNG 文件名, 因此 `get(pet_id) != null` 就表示同 ID PNG 存在.
 # `.tpsheet` 或 offsets 不会反向创建宠物条目, 避免孤立配置文件被误认为可播放宠物.
-var _assets_by_id: Dictionary = {}
+var _by_id: Dictionary = {}
 
 # 以 PNG 文件中的宠物 ID 为主导扫描宠物资源目录, 再读取可选 offsets 总表补充绘制偏移.
 # `.tpsheet` 只服务于已经存在 PNG 的宠物, 不反向创建宠物资源条目.
 func load() -> void:
 	# 第一步: 扫描宠物资源目录并收集文件名.
 	# 只读取一次目录, 后面分别用同一份 file_names 做 PNG 注册和 `.tpsheet` 绑定.
-	_assets_by_id.clear()
+	_by_id.clear()
 	var dir := DirAccess.open(Constants.ASSET_PET_DIR)
 	if dir == null:
 		assert(false, "宠物资源目录不存在或无法打开: %s" % Constants.ASSET_PET_DIR)
@@ -61,11 +61,11 @@ func load() -> void:
 		if png_pet_id <= 0:
 			continue
 
-		assert(not _assets_by_id.has(png_pet_id), "宠物 PNG 资源 ID 重复: %d" % png_pet_id)
-		var png_entry := AssetPetEntry.new()
+		assert(not _by_id.has(png_pet_id), "宠物 PNG 资源 ID 重复: %d" % png_pet_id)
+		var png_entry := Entry.new()
 		png_entry.id = png_pet_id
 		png_entry.png_path = "%s/%s" % [Constants.ASSET_PET_DIR, current_file_name]
-		_assets_by_id[png_pet_id] = png_entry
+		_by_id[png_pet_id] = png_entry
 
 	# 第三步: 读取可选 offsets 总表.
 	# offsets JSON 只作为 `.tpsheet` 合成 draw_position 的输入; 总表不存在时使用空字典, 表示所有帧都没有额外偏移.
@@ -102,10 +102,10 @@ func load() -> void:
 			continue
 
 		var sheet_pet_id := AssetParse.id_from_suffix(current_file_name, ".tpsheet")
-		if sheet_pet_id <= 0 or not _assets_by_id.has(sheet_pet_id):
+		if sheet_pet_id <= 0 or not _by_id.has(sheet_pet_id):
 			continue
 
-		var sheet_entry: AssetPetEntry = _assets_by_id[sheet_pet_id]
+		var sheet_entry: Entry = _by_id[sheet_pet_id]
 		var sheet_path := "%s/%s" % [Constants.ASSET_PET_DIR, current_file_name]
 		var sheet_file := FileAccess.open(sheet_path, FileAccess.READ)
 		if sheet_file == null:
@@ -150,9 +150,9 @@ func load() -> void:
 
 	# 第五步: 检查本次宠物资源加载结果.
 	# 宠物资源以 PNG 为主导; 只要目录里存在 `{pet_id}.png`, 同 ID `.tpsheet` 就必须可解析.
-	assert(not _assets_by_id.is_empty(), "宠物资源目录没有加载到任何 PNG: %s" % Constants.ASSET_PET_DIR)
-	for loaded_pet_id in _assets_by_id.keys():
-		var loaded_entry: AssetPetEntry = _assets_by_id[loaded_pet_id]
+	assert(not _by_id.is_empty(), "宠物资源目录没有加载到任何 PNG: %s" % Constants.ASSET_PET_DIR)
+	for loaded_pet_id in _by_id.keys():
+		var loaded_entry: Entry = _by_id[loaded_pet_id]
 		var missing_sources: Array[String] = []
 		if loaded_entry.png_path.is_empty():
 			missing_sources.append("png")
@@ -161,7 +161,7 @@ func load() -> void:
 		assert(missing_sources.is_empty(), "宠物资源不完整: pet:%d missing:%s" % [int(loaded_pet_id), str(missing_sources)])
 
 # 按宠物 ID 返回已加载的宠物资源条目.
-func get_asset(pet_id: int) -> AssetPetEntry:
+func get(pet_id: int) -> Entry:
 	# 返回启动阶段建立的索引条目; 不存在时返回 null, 调用方据此输出缺资源错误.
 	# 这里不自动创建条目, 因为宠物资源必须以 PNG 文件为主导.
-	return _assets_by_id.get(pet_id, null)
+	return _by_id.get(pet_id, null)
