@@ -48,13 +48,13 @@ static func get_shared() -> ConfigManager:
 		# 第二阶段只读取配置源文件并建立各自的基础缓存.
 		# 这个阶段不要做依赖其它配置的组装, 避免读取顺序互相影响.
 		_shared_manager.config_pet.load(Constants.CONFIG_PET_PATH)
-		_shared_manager.config_character.load(Constants.CONFIG_CHARACTER_PATH)
+		_shared_manager.config_character.load()
 		_shared_manager.config_enemy_group.load(Constants.CONFIG_ENEMY_GROUP_PATH)
 
 		# 第三阶段做校验.
 		# 这里资源和所有配置都已经完成 load, 可以做跨配置和配置到资源的检查.
 		_shared_manager.config_pet.check(_shared_manager.asset_manager)
-		_shared_manager.config_character.check(_shared_manager.asset_manager)
+		_shared_manager.config_character.check()
 		_shared_manager.config_enemy_group.check(_shared_manager.config_pet, _shared_manager.asset_manager)
 
 		# 第四阶段做组装.
