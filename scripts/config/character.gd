@@ -163,8 +163,7 @@ func check() -> void:
         # 缺帧通常说明 character.yaml 写错帧号, 或对应 .tpsheet 没有导出该 sprite.
         for sprite_value in character.sprite_entries.values():
             var sprite_entry := sprite_value as SpriteDirectionWeaponActionEntry
-            if sprite_entry == null:
-                continue
+            assert(sprite_entry != null, "角色 sprite entry 类型非法: character:%d" % int(character_id))
             var weapon_key := Constants.weapon_to_key(sprite_entry.weapon)
             var direction_key := Constants.orientation_to_key(sprite_entry.orientation)
             var action_key := Constants.character_action_to_key(sprite_entry.action)

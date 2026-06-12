@@ -49,7 +49,7 @@ static func get_shared() -> ConfigManager:
         # 这个阶段不要做依赖其它配置的组装, 避免读取顺序互相影响.
         _shared_manager.config_pet.load()
         _shared_manager.config_character.load()
-        _shared_manager.config_enemy_group.load(Constants.CONFIG_ENEMY_GROUP_PATH)
+        _shared_manager.config_enemy_group.load()
 
         # 第三阶段做校验.
         # 这里资源和所有配置都已经完成 load, 可以做跨配置和配置到资源的检查.
