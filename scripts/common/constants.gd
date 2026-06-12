@@ -42,62 +42,62 @@ const ANIMATION_PADDING := Vector2(24.0, 24.0)
 # 方向枚举.
 # 枚举数值是运行时配置解析和帧表索引使用的稳定值; 调整名称时不要改变已有数值.
 enum Direction {
-	Unknown = 0,
-	Up = 1,
-	UpRight = 2,
-	Right = 3,
-	DownRight = 4,
-	Down = 5,
-	DownLeft = 6,
-	Left = 7,
-	UpLeft = 8,
-	Max = 9,
+    Unknown = 0,
+    Up = 1,
+    UpRight = 2,
+    Right = 3,
+    DownRight = 4,
+    Down = 5,
+    DownLeft = 6,
+    Left = 7,
+    UpLeft = 8,
+    Max = 9,
 }
 
 # 宠物动作枚举.
 # YAML 和菜单继续使用字符串 key, 宠物配置结构使用这些稳定枚举值做 Dictionary key.
 enum PetAction {
-	Unknown = 0,
-	Attack = 1,
-	Faint = 2,
-	Hurt = 3,
-	Defense = 4,
-	Stand = 5,
-	Walk = 6,
-	AttackShort = 7,
-	Max = 8,
+    Unknown = 0,
+    Attack = 1,
+    Faint = 2,
+    Hurt = 3,
+    Defense = 4,
+    Stand = 5,
+    Walk = 6,
+    AttackShort = 7,
+    Max = 8,
 }
 
 # 角色动作枚举.
 # 角色动作集合和宠物不同, 因此使用独立枚举空间, 避免运行时误用另一类动作 key.
 enum CharacterAction {
-	Unknown = 0,
-	Attack = 1,
-	Wave = 2,
-	Faint = 3,
-	Hurt = 4,
-	Defense = 5,
-	Sad = 6,
-	Angry = 7,
-	Sit = 8,
-	Stand = 9,
-	Throw = 10,
-	Nod = 11,
-	Walk = 12,
-	Happy = 13,
-	Max = 14,
+    Unknown = 0,
+    Attack = 1,
+    Wave = 2,
+    Faint = 3,
+    Hurt = 4,
+    Defense = 5,
+    Sad = 6,
+    Angry = 7,
+    Sit = 8,
+    Stand = 9,
+    Throw = 10,
+    Nod = 11,
+    Walk = 12,
+    Happy = 13,
+    Max = 14,
 }
 
 # 角色武器类型枚举.
 # 角色 YAML 仍使用 weapon 字段下的字符串武器类型名, 运行时 ConfigCharacter 使用这些枚举值做 Dictionary key.
 enum WeaponType {
-	Unknown = 0,
-	Unarmed = 1,
-	Axe = 2,
-	Bow = 3,
-	Spear = 4,
-	Stick = 5,
-	Max = 6,
+    Unknown = 0,
+    Unarmed = 1,
+    Axe = 2,
+    Bow = 3,
+    Spear = 4,
+    Stick = 5,
+    Max = 6,
 }
 
 # 项目动画配置中的 8 方向统一定义.
@@ -105,221 +105,221 @@ enum WeaponType {
 # 运行时动画名会由 `动作_方向` 组成, 例如 `stand_down` 或 `attack_left`.
 # 托盘菜单和测试页也会使用这个顺序展示方向, 所以调整顺序会影响 UI 显示顺序.
 const DIRECTIONS := [
-	"down",
-	"downleft",
-	"left",
-	"upleft",
-	"up",
-	"upright",
-	"right",
-	"downright",
+    "down",
+    "downleft",
+    "left",
+    "upleft",
+    "up",
+    "upright",
+    "right",
+    "downright",
 ]
 
 # 运行时内部使用的方向枚举顺序, 与 DIRECTIONS 字符串顺序一一对应.
 const DIRECTION_VALUES := [
-	Direction.Down,
-	Direction.DownLeft,
-	Direction.Left,
-	Direction.UpLeft,
-	Direction.Up,
-	Direction.UpRight,
-	Direction.Right,
-	Direction.DownRight,
+    Direction.Down,
+    Direction.DownLeft,
+    Direction.Left,
+    Direction.UpLeft,
+    Direction.Up,
+    Direction.UpRight,
+    Direction.Right,
+    Direction.DownRight,
 ]
 
 # 宠物动作顺序用于托盘菜单、动画构建兜底和宠物偏移测试页.
 # 动作显示标签属于具体 UI/菜单用途, 不放在公共常量里.
 # 这里保存的是配置和动画资源使用的动作 key, 不是中文显示文案.
 const PET_ACTIONS := [
-	"attack",
-	"faint",
-	"hurt",
-	"defense",
-	"stand",
-	"walk",
-	"attackShort",
+    "attack",
+    "faint",
+    "hurt",
+    "defense",
+    "stand",
+    "walk",
+    "attackShort",
 ]
 
 # 运行时内部使用的宠物动作枚举顺序, 与 PET_ACTIONS 字符串顺序一一对应.
 const PET_ACTION_VALUES := [
-	PetAction.Attack,
-	PetAction.Faint,
-	PetAction.Hurt,
-	PetAction.Defense,
-	PetAction.Stand,
-	PetAction.Walk,
-	PetAction.AttackShort,
+    PetAction.Attack,
+    PetAction.Faint,
+    PetAction.Hurt,
+    PetAction.Defense,
+    PetAction.Stand,
+    PetAction.Walk,
+    PetAction.AttackShort,
 ]
 
 # 角色动作顺序用于角色动画构建兜底和角色偏移测试页.
 # 角色动作比宠物多武器类型维度, 但动画名仍使用 `动作_方向` 的组合规则.
 # AnimationCharacterBuilder 会在具体武器类型下读取这些动作对应的帧序列.
 const CHARACTER_ACTIONS := [
-	"attack",
-	"wave",
-	"faint",
-	"hurt",
-	"defense",
-	"sad",
-	"angry",
-	"sit",
-	"stand",
-	"throw",
-	"nod",
-	"walk",
-	"happy",
+    "attack",
+    "wave",
+    "faint",
+    "hurt",
+    "defense",
+    "sad",
+    "angry",
+    "sit",
+    "stand",
+    "throw",
+    "nod",
+    "walk",
+    "happy",
 ]
 
 # 运行时内部使用的角色动作枚举顺序, 与 CHARACTER_ACTIONS 字符串顺序一一对应.
 const CHARACTER_ACTION_VALUES := [
-	CharacterAction.Attack,
-	CharacterAction.Wave,
-	CharacterAction.Faint,
-	CharacterAction.Hurt,
-	CharacterAction.Defense,
-	CharacterAction.Sad,
-	CharacterAction.Angry,
-	CharacterAction.Sit,
-	CharacterAction.Stand,
-	CharacterAction.Throw,
-	CharacterAction.Nod,
-	CharacterAction.Walk,
-	CharacterAction.Happy,
+    CharacterAction.Attack,
+    CharacterAction.Wave,
+    CharacterAction.Faint,
+    CharacterAction.Hurt,
+    CharacterAction.Defense,
+    CharacterAction.Sad,
+    CharacterAction.Angry,
+    CharacterAction.Sit,
+    CharacterAction.Stand,
+    CharacterAction.Throw,
+    CharacterAction.Nod,
+    CharacterAction.Walk,
+    CharacterAction.Happy,
 ]
 
 # 角色武器类型顺序用于配置完整性校验和角色偏移测试页展示.
 const CHARACTER_WEAPON_TYPES := [
-	"unarmed",
-	"axe",
-	"bow",
-	"spear",
-	"stick",
+    "unarmed",
+    "axe",
+    "bow",
+    "spear",
+    "stick",
 ]
 
 # 运行时内部使用的角色武器类型枚举顺序, 与 CHARACTER_WEAPON_TYPES 字符串顺序一一对应.
 const CHARACTER_WEAPON_TYPE_VALUES := [
-	WeaponType.Unarmed,
-	WeaponType.Axe,
-	WeaponType.Bow,
-	WeaponType.Spear,
-	WeaponType.Stick,
+    WeaponType.Unarmed,
+    WeaponType.Axe,
+    WeaponType.Bow,
+    WeaponType.Spear,
+    WeaponType.Stick,
 ]
 
 # 方向字符串协议和运行时枚举的双向映射.
 # YAML, 托盘菜单和动画名使用字符串; 配置对象内部使用枚举值.
 const DIRECTION_BY_KEY := {
-	"up": Direction.Up,
-	"upright": Direction.UpRight,
-	"right": Direction.Right,
-	"downright": Direction.DownRight,
-	"down": Direction.Down,
-	"downleft": Direction.DownLeft,
-	"left": Direction.Left,
-	"upleft": Direction.UpLeft,
+    "up": Direction.Up,
+    "upright": Direction.UpRight,
+    "right": Direction.Right,
+    "downright": Direction.DownRight,
+    "down": Direction.Down,
+    "downleft": Direction.DownLeft,
+    "left": Direction.Left,
+    "upleft": Direction.UpLeft,
 }
 
 const DIRECTION_KEY_BY_VALUE := {
-	Direction.Up: "up",
-	Direction.UpRight: "upright",
-	Direction.Right: "right",
-	Direction.DownRight: "downright",
-	Direction.Down: "down",
-	Direction.DownLeft: "downleft",
-	Direction.Left: "left",
-	Direction.UpLeft: "upleft",
+    Direction.Up: "up",
+    Direction.UpRight: "upright",
+    Direction.Right: "right",
+    Direction.DownRight: "downright",
+    Direction.Down: "down",
+    Direction.DownLeft: "downleft",
+    Direction.Left: "left",
+    Direction.UpLeft: "upleft",
 }
 
 # 宠物动作字符串协议和运行时枚举的双向映射.
 const PET_ACTION_BY_KEY := {
-	"attack": PetAction.Attack,
-	"faint": PetAction.Faint,
-	"hurt": PetAction.Hurt,
-	"defense": PetAction.Defense,
-	"stand": PetAction.Stand,
-	"walk": PetAction.Walk,
-	"attackShort": PetAction.AttackShort,
+    "attack": PetAction.Attack,
+    "faint": PetAction.Faint,
+    "hurt": PetAction.Hurt,
+    "defense": PetAction.Defense,
+    "stand": PetAction.Stand,
+    "walk": PetAction.Walk,
+    "attackShort": PetAction.AttackShort,
 }
 
 const PET_ACTION_KEY_BY_VALUE := {
-	PetAction.Attack: "attack",
-	PetAction.Faint: "faint",
-	PetAction.Hurt: "hurt",
-	PetAction.Defense: "defense",
-	PetAction.Stand: "stand",
-	PetAction.Walk: "walk",
-	PetAction.AttackShort: "attackShort",
+    PetAction.Attack: "attack",
+    PetAction.Faint: "faint",
+    PetAction.Hurt: "hurt",
+    PetAction.Defense: "defense",
+    PetAction.Stand: "stand",
+    PetAction.Walk: "walk",
+    PetAction.AttackShort: "attackShort",
 }
 
 # 角色动作字符串协议和运行时枚举的双向映射.
 const CHARACTER_ACTION_BY_KEY := {
-	"attack": CharacterAction.Attack,
-	"wave": CharacterAction.Wave,
-	"faint": CharacterAction.Faint,
-	"hurt": CharacterAction.Hurt,
-	"defense": CharacterAction.Defense,
-	"sad": CharacterAction.Sad,
-	"angry": CharacterAction.Angry,
-	"sit": CharacterAction.Sit,
-	"stand": CharacterAction.Stand,
-	"throw": CharacterAction.Throw,
-	"nod": CharacterAction.Nod,
-	"walk": CharacterAction.Walk,
-	"happy": CharacterAction.Happy,
+    "attack": CharacterAction.Attack,
+    "wave": CharacterAction.Wave,
+    "faint": CharacterAction.Faint,
+    "hurt": CharacterAction.Hurt,
+    "defense": CharacterAction.Defense,
+    "sad": CharacterAction.Sad,
+    "angry": CharacterAction.Angry,
+    "sit": CharacterAction.Sit,
+    "stand": CharacterAction.Stand,
+    "throw": CharacterAction.Throw,
+    "nod": CharacterAction.Nod,
+    "walk": CharacterAction.Walk,
+    "happy": CharacterAction.Happy,
 }
 
 const CHARACTER_ACTION_KEY_BY_VALUE := {
-	CharacterAction.Attack: "attack",
-	CharacterAction.Wave: "wave",
-	CharacterAction.Faint: "faint",
-	CharacterAction.Hurt: "hurt",
-	CharacterAction.Defense: "defense",
-	CharacterAction.Sad: "sad",
-	CharacterAction.Angry: "angry",
-	CharacterAction.Sit: "sit",
-	CharacterAction.Stand: "stand",
-	CharacterAction.Throw: "throw",
-	CharacterAction.Nod: "nod",
-	CharacterAction.Walk: "walk",
-	CharacterAction.Happy: "happy",
+    CharacterAction.Attack: "attack",
+    CharacterAction.Wave: "wave",
+    CharacterAction.Faint: "faint",
+    CharacterAction.Hurt: "hurt",
+    CharacterAction.Defense: "defense",
+    CharacterAction.Sad: "sad",
+    CharacterAction.Angry: "angry",
+    CharacterAction.Sit: "sit",
+    CharacterAction.Stand: "stand",
+    CharacterAction.Throw: "throw",
+    CharacterAction.Nod: "nod",
+    CharacterAction.Walk: "walk",
+    CharacterAction.Happy: "happy",
 }
 
 # 武器类型字符串协议和运行时枚举的双向映射.
 const WEAPON_TYPE_BY_KEY := {
-	"unarmed": WeaponType.Unarmed,
-	"axe": WeaponType.Axe,
-	"bow": WeaponType.Bow,
-	"spear": WeaponType.Spear,
-	"stick": WeaponType.Stick,
+    "unarmed": WeaponType.Unarmed,
+    "axe": WeaponType.Axe,
+    "bow": WeaponType.Bow,
+    "spear": WeaponType.Spear,
+    "stick": WeaponType.Stick,
 }
 
 const WEAPON_TYPE_KEY_BY_VALUE := {
-	WeaponType.Unarmed: "unarmed",
-	WeaponType.Axe: "axe",
-	WeaponType.Bow: "bow",
-	WeaponType.Spear: "spear",
-	WeaponType.Stick: "stick",
+    WeaponType.Unarmed: "unarmed",
+    WeaponType.Axe: "axe",
+    WeaponType.Bow: "bow",
+    WeaponType.Spear: "spear",
+    WeaponType.Stick: "stick",
 }
 
 static func direction_from_key(key: String) -> int:
-	return int(DIRECTION_BY_KEY.get(key, Direction.Unknown))
+    return int(DIRECTION_BY_KEY.get(key, Direction.Unknown))
 
 static func direction_to_key(direction: int) -> String:
-	return str(DIRECTION_KEY_BY_VALUE.get(direction, ""))
+    return str(DIRECTION_KEY_BY_VALUE.get(direction, ""))
 
 static func pet_action_from_key(key: String) -> int:
-	return int(PET_ACTION_BY_KEY.get(key, PetAction.Unknown))
+    return int(PET_ACTION_BY_KEY.get(key, PetAction.Unknown))
 
 static func pet_action_to_key(action: int) -> String:
-	return str(PET_ACTION_KEY_BY_VALUE.get(action, ""))
+    return str(PET_ACTION_KEY_BY_VALUE.get(action, ""))
 
 static func character_action_from_key(key: String) -> int:
-	return int(CHARACTER_ACTION_BY_KEY.get(key, CharacterAction.Unknown))
+    return int(CHARACTER_ACTION_BY_KEY.get(key, CharacterAction.Unknown))
 
 static func character_action_to_key(action: int) -> String:
-	return str(CHARACTER_ACTION_KEY_BY_VALUE.get(action, ""))
+    return str(CHARACTER_ACTION_KEY_BY_VALUE.get(action, ""))
 
 static func weapon_type_from_key(key: String) -> int:
-	return int(WEAPON_TYPE_BY_KEY.get(key, WeaponType.Unknown))
+    return int(WEAPON_TYPE_BY_KEY.get(key, WeaponType.Unknown))
 
 static func weapon_type_to_key(weapon: int) -> String:
-	return str(WEAPON_TYPE_KEY_BY_VALUE.get(weapon, ""))
+    return str(WEAPON_TYPE_KEY_BY_VALUE.get(weapon, ""))
