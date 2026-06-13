@@ -15,10 +15,12 @@ const CONFIG_PET_PATH := "res://config/pet.yaml"
 const CONFIG_CHARACTER_PATH := "res://config/character.yaml"
 const CONFIG_ENEMY_GROUP_PATH := "res://config/enemy.group.yaml"
 
-# 宠物配置基础校验范围.
-# ConfigPet.load() 使用这些范围在启动阶段直接暴露非法 pet_id 或 rarity.
+# 配置表声明的 ID 范围.
+# 动画显示入口会用这些范围从 id 推导资源类型; 配置加载也会用宠物范围暴露非法 pet_id.
 const PET_ID_MIN := 4000101
 const PET_ID_MAX := 4999999
+const CHARACTER_ID_MIN := 1000001
+const CHARACTER_ID_MAX := 1999999
 const RARITY_MIN := 1
 const RARITY_MAX := 5
 const ELEMENT_KEYS := ["earth", "water", "fire", "wind"]
@@ -323,3 +325,9 @@ static func weapon_type_from_key(key: String) -> int:
 
 static func weapon_type_to_key(weapon: int) -> String:
     return str(WEAPON_TYPE_KEY_BY_VALUE.get(weapon, ""))
+
+static func is_pet_id(id: int) -> bool:
+    return id >= PET_ID_MIN and id <= PET_ID_MAX
+
+static func is_character_id(id: int) -> bool:
+    return id >= CHARACTER_ID_MIN and id <= CHARACTER_ID_MAX
