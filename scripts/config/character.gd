@@ -5,9 +5,8 @@ extends RefCounted
 # 这个类使用 MiniYAML 解析 YAML, 只消费 character: 段, 并转换成结构化角色条目.
 
 # 角色某个方向, 武器类型和动作组合下的帧号序列.
-# key 由 Entry.direction_weapon_action_frames 使用 Vector3i(direction, weapon, action) 直接定位,
-# 避免运行时先取方向或武器类型对象, 再取动作字典的多层包装.
-class FramesInfo extends RefCounted:
+# key 由 Entry.direction_weapon_action_frames 使用 Vector3i(direction, weapon, action) 直接定位.
+class PlayInfo extends RefCounted:
     # Array[int] 中的 int 表示 YAML sprite 动作帧表里的 frame_id, ids 顺序就是播放顺序.
     var ids: Array[int] = []
 
@@ -18,15 +17,20 @@ class Entry extends RefCounted:
     var is_role: bool
     var description: String
     var color: String
-    # Vector3i(direction, weapon, action) -> FramesInfo.
+    # Vector3i(direction, weapon, action) -> PlayInfo.
     # Vector3i.x 是 Constants.Direction, y 是 Constants.WeaponType, z 是 Constants.CharacterAction.
-    # 角色资源要求每个方向, 武器类型和动作组合都存在, 因此上层构建动画时可直接定位帧号表.
-    var direction_weapon_action_frames: Dictionary[Vector3i, FramesInfo] = {}
+    # 角色资源要求每个方向, 武器类型和动作组合都存在, 因此播放缓存可直接定位帧号表.
+    var direction_weapon_action_frames: Dictionary[Vector3i, PlayInfo] = {}
     # frame_id -> TexturePackerFrame.
     # Dictionary[int, TexturePackerFrame] 的 int 表示 YAML 动画帧表引用的 frame_id.
     # 这是 `.tpsheet` 的 region/margin 和 offsets JSON 合成后的帧索引.
-    # Entry 直接持有这份索引引用, 动画数据会继续引用它, 不复制每帧 TexturePackerFrame.
+    # Entry 直接持有这份索引引用, PlayInfo 只保存帧号序列, 不复制每帧 TexturePackerFrame.
     var frame_by_id: Dictionary[int, TexturePackerFrame] = {}
+    var atlas: Texture2D
+
+    func get_play_info(direction: int, weapon: int, action: int) -> PlayInfo:
+        var play_key := Vector3i(direction, weapon, action)
+        return direction_weapon_action_frames[play_key] as PlayInfo
 
 # 按角色 ID 建立的主缓存.
 # Dictionary[int, Entry] 的 int 表示 config/character.yaml 中 character 段的角色 ID.
@@ -36,9 +40,9 @@ var _by_id: Dictionary[int, Entry] = {}
 
 # 配置管理流程的第一步.
 # 读取 YAML 并按 character: 段的声明顺序写入 ID 索引.
-# 资源帧表已由 ConfigAssets 统一加载; 本函数只把同 ID 内层帧表引用挂到 Entry.
+# 资源帧表已由 ConfigAssets 统一加载; 本函数只解析 YAML 字段和方向, 武器类型, 动作到帧号序列的关系.
 func load() -> void:
-    var config_data: Dictionary[String, Variant] = ConfigManager.load_yaml(Constants.CONFIG_CHARACTER_PATH)
+    var config_data := ConfigManager.load_yaml(Constants.CONFIG_CHARACTER_PATH)
     var raw_characters = config_data.get("character", [])
     assert(raw_characters is Array, "角色配置 character 段不是数组: %s" % Constants.CONFIG_CHARACTER_PATH)
 
@@ -48,8 +52,8 @@ func load() -> void:
         assert(raw_character is Dictionary, "角色配置条目须为对象: %s" % Constants.CONFIG_CHARACTER_PATH)
 
         # 基础字段先按 Entry 目标类型收敛; 无默认值字段使用无效默认值, 通过后续断言暴露配置错误.
-        # 字段之间的引用关系, 例如 frame 是否存在于资源中, 放到 check() 阶段统一处理.
-        var raw_character_dict := raw_character as Dictionary[String, Variant]
+        # 字段之间的引用关系, 例如 frame 是否存在于资源中, 放到 assemble() 阶段统一处理.
+        var raw_character_dict := raw_character as Dictionary
         # ID 是角色配置和 assets/character 资源文件名的连接点.
         # 非法或重复 ID 会让后续资源校验失去确定目标, 因此读取后立刻拦截.
         var character_id := int(raw_character_dict.get("id", 0))
@@ -76,11 +80,11 @@ func load() -> void:
 
         var raw_action_frames = raw_character_dict.get("sprite", {})
         assert(raw_action_frames is Dictionary, "角色动作帧表须为对象: character:%d" % character.id)
-        # Dictionary[Vector3i, FramesInfo] 的 Vector3i 为 (direction 枚举值, weapon 枚举值, character_action 枚举值).
-        var direction_weapon_action_frames: Dictionary[Vector3i, FramesInfo] = {}
+        # Dictionary[Vector3i, PlayInfo] 的 Vector3i 为 (direction 枚举值, weapon 枚举值, character_action 枚举值).
+        var direction_weapon_action_frames: Dictionary[Vector3i, PlayInfo] = {}
         # YAML sprite 字段的动作帧表源结构是 weapon -> direction -> action -> frame ids.
-        # 这里把 direction, weapon 和 action 一起收敛成 direction_weapon_action_frames 的 key, 上层可直接定位帧号序列; weapon 是配置字段名, 语义是武器类型.
-        var action_frame_dict := raw_action_frames as Dictionary[String, Variant]
+        # 这里把 direction, weapon 和 action 一起收敛成 direction_weapon_action_frames 的 key, 播放缓存可直接定位帧号序列; weapon 是配置字段名, 语义是武器类型.
+        var action_frame_dict := raw_action_frames as Dictionary
         for weapon in action_frame_dict.keys():
             var weapon_value := Constants.weapon_type_from_key(str(weapon))
             assert(weapon_value != Constants.WeaponType.Unknown, "角色动作帧表武器类型未知: character:%d weapon:%s" % [character.id, str(weapon)])
@@ -88,7 +92,7 @@ func load() -> void:
             var weapon_data = action_frame_dict[weapon]
             assert(weapon_data is Dictionary, "角色动作帧表武器类型配置须为对象: character:%d weapon:%s" % [character.id, str(weapon)])
 
-            var weapon_dict := weapon_data as Dictionary[String, Variant]
+            var weapon_dict := weapon_data as Dictionary
             for direction_key in weapon_dict.keys():
                 var direction := Constants.direction_from_key(str(direction_key))
                 assert(direction != Constants.Direction.Unknown, "角色动作帧表方向未知: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction_key)])
@@ -96,7 +100,7 @@ func load() -> void:
                 var direction_data = weapon_dict[direction_key]
                 assert(direction_data is Dictionary, "角色动作帧表方向配置须为对象: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction_key)])
 
-                var direction_dict := direction_data as Dictionary[String, Variant]
+                var direction_dict := direction_data as Dictionary
                 for action in direction_dict.keys():
                     var action_value := Constants.character_action_from_key(str(action))
                     assert(action_value != Constants.CharacterAction.Unknown, "角色动作帧表动作未知: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction_key), str(action)])
@@ -108,12 +112,13 @@ func load() -> void:
                     var parsed_frame_ids: Array[int] = []
                     for frame_id_raw in frame_ids:
                         parsed_frame_ids.append(int(frame_id_raw))
+                    assert(not parsed_frame_ids.is_empty(), "角色动作帧表帧号数组不能为空: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction_key), str(action)])
 
-                    var frames_info := FramesInfo.new()
-                    frames_info.ids = parsed_frame_ids
+                    var play_info := PlayInfo.new()
+                    play_info.ids = parsed_frame_ids
                     var action_frame_key := Vector3i(direction, weapon_value, action_value)
                     assert(not direction_weapon_action_frames.has(action_frame_key), "角色动作帧表方向武器类型动作重复: character:%d direction:%s weapon:%s action:%s" % [character.id, str(direction_key), str(weapon), str(action)])
-                    direction_weapon_action_frames[action_frame_key] = frames_info
+                    direction_weapon_action_frames[action_frame_key] = play_info
 
         for required_weapon in Constants.CHARACTER_WEAPON_TYPE_VALUES:
             for required_direction in Constants.DIRECTION_VALUES:
@@ -140,18 +145,20 @@ func assemble() -> void:
         assert(frame_table != null, "角色缺少同 ID 可播放资源: character:%d" % int(character_id))
         assert(not frame_table.frame_by_id.is_empty(), "角色缺少可播放资源: character:%d missing:[png/tpsheet]" % int(character_id))
         character.frame_by_id = frame_table.frame_by_id
+        var atlas_path := Constants.get_atlas_path(int(character_id))
 
         # 逐帧检查 YAML 动作帧表和 TexturePacker 帧表是否对齐.
         # 缺帧通常说明 character.yaml 写错帧号, 或对应 .tpsheet 没有导出该 frame.
         for action_frame_key in character.direction_weapon_action_frames.keys():
-            var frames_info := character.direction_weapon_action_frames[action_frame_key] as FramesInfo
-            assert(frames_info != null, "角色帧号序列类型非法: character:%d" % int(character_id))
+            var play_info := character.direction_weapon_action_frames[action_frame_key] as PlayInfo
+            assert(play_info != null, "角色播放信息类型非法: character:%d" % int(character_id))
             var key := action_frame_key as Vector3i
             var direction_key := Constants.direction_to_key(key.x)
             var weapon_key := Constants.weapon_type_to_key(key.y)
             var action_key := Constants.character_action_to_key(key.z)
-            for frame_id in frames_info.ids:
-                assert(character.frame_by_id.get(int(frame_id), null) != null, "角色动作帧表引用了不存在的可播放帧: character:%d weapon:%s direction:%s action:%s frame:%d" % [int(character_id), weapon_key, direction_key, action_key, int(frame_id)])
+            for frame_id in play_info.ids:
+                var frame := character.frame_by_id.get(int(frame_id), null) as TexturePackerFrame
+                assert(frame != null, "角色动作帧表引用了不存在的可播放帧: character:%d weapon:%s direction:%s action:%s frame:%d" % [int(character_id), weapon_key, direction_key, action_key, int(frame_id)])
 
 # 返回 config/character.yaml 中声明过的角色 ID.
 # Godot 4 Dictionary 会保留插入顺序, 这里的 keys() 顺序与 YAML 中 character: 段的声明顺序一致.
@@ -165,4 +172,12 @@ func get_ids() -> Array[int]:
 
 # 根据角色 ID 返回单个结构化角色配置.
 func get_by_id(character_id: int) -> Entry:
-    return _by_id.get(character_id, null) as Entry
+    var entry := _by_id.get(character_id, null) as Entry
+    if entry.atlas == null: # 懒加载-角色图集 
+        var atlas_path := Constants.get_atlas_path(int(character_id))
+        var atlas_load_started_at := Time.get_ticks_msec()
+        entry.atlas = ResourceLoader.load(atlas_path) as Texture2D
+        var atlas_load_elapsed_ms := Time.get_ticks_msec() - atlas_load_started_at
+        print("角色图集加载完成: character:%d path:%s elapsed_ms:%d" % [int(character_id), atlas_path, atlas_load_elapsed_ms])
+        assert(entry.atlas != null, "角色图集不存在: %s" % atlas_path)
+    return entry
