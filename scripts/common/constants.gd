@@ -25,20 +25,24 @@ const RARITY_MIN := 1
 const RARITY_MAX := 5
 const ELEMENT_KEYS := ["earth", "water", "fire", "wind"]
 
-# 宠物资源目录和偏移总表路径由资产管理器, 动画构建器和测试页共用.
-# 每个宠物仍使用同 ID 的 PNG 和 .tpsheet, offsets.json 可选保存 pet_id -> frame_id -> [x, y] 的偏移映射.
-# 资产管理器会根据宠物 ID 在 ASSET_PET_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
+# 宠物资源目录由 ConfigAssets, 宠物动画构建器和测试页共用.
+# 每个宠物仍使用同 ID 的 PNG 和 .tpsheet, 宠物每帧 offset 直接内联在 `.tpsheet` sprite 的 `offset: [x, y]` 字段中.
+# ConfigAssets 会根据宠物 ID 在 ASSET_PET_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
 const ASSET_PET_DIR := "res://assets/pet"
-const PET_OFFSETS_PATH := "res://assets/pet/offsets.json"
 
-# 角色资源目录和偏移总表路径由资产管理器, 动画构建器和测试页共用.
-# 每个角色仍使用同 ID 的 PNG 和 .tpsheet, offsets.json 可选保存 character_id -> frame_id -> [x, y] 的偏移映射.
-# 资产管理器会根据角色 ID 在 ASSET_CHARACTER_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
+# 角色资源目录由 ConfigAssets, 角色播放缓存和测试页共用.
+# 每个角色使用同 ID 的 PNG 和 .tpsheet, 角色每帧 offset 直接内联在 `.tpsheet` sprite 的 `offset: [x, y]` 字段中.
+# ConfigAssets 会根据角色 ID 在 ASSET_CHARACTER_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.
 const ASSET_CHARACTER_DIR := "res://assets/character"
-const CHARACTER_OFFSETS_PATH := "res://assets/character/offsets.json"
+
+# 动画播放默认参数.
+# 普通动作使用默认速度, walk 动作单独使用更快的行走速度; 默认循环表示基础动画播完后回到第一帧.
+const ANIMATION_DEFAULT_SPEED := 8.0
+const ANIMATION_WALK_SPEED := 10.0
+const ANIMATION_DEFAULT_LOOP := true
 
 # padding 给动画画布四周留一点空白, 避免极限帧贴到窗口边缘.
-# 实际画布大小仍由帧 region, margin 和可选 offsets 计算得出; 这里不是宠物体型上限, 只是统一额外边距.
+# 实际画布大小仍由帧 region, margin 和可选 offset 计算得出; 这里不是宠物体型上限, 只是统一额外边距.
 const ANIMATION_PADDING := Vector2(24.0, 24.0)
 
 # 方向枚举.
@@ -153,9 +157,9 @@ const PET_ACTION_VALUES := [
     PetAction.AttackShort,
 ]
 
-# 角色动作顺序用于角色动画构建兜底和角色偏移测试页.
-# 角色动作比宠物多武器类型维度, 但动画名仍使用 `动作_方向` 的组合规则.
-# AnimationCharacterBuilder 会在具体武器类型下读取这些动作对应的帧序列.
+# 角色动作顺序用于角色播放缓存和角色偏移测试页.
+# 角色动作比宠物多武器类型维度, 播放缓存会把方向, 武器类型和动作一起作为 key.
+# ConfigCharacter.Entry 会在具体武器类型下读取这些动作对应的帧序列.
 const CHARACTER_ACTIONS := [
     "attack",
     "wave",
@@ -331,3 +335,14 @@ static func is_pet_id(id: int) -> bool:
 
 static func is_character_id(id: int) -> bool:
     return id >= CHARACTER_ID_MIN and id <= CHARACTER_ID_MAX
+
+# 根据运行期资源 ID 返回对应图集路径.
+# 调用方只传宠物或角色 ID, 资源类型由配置表约定的 ID 范围推导.
+static func get_atlas_path(id: int) -> String:
+    if is_pet_id(id):
+        return "%s/%d.png" % [ASSET_PET_DIR, id]
+    if is_character_id(id):
+        return "%s/%d.png" % [ASSET_CHARACTER_DIR, id]
+
+    assert(false, "资源ID不属于宠物或角色范围: %d" % id)
+    return ""
