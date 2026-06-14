@@ -285,7 +285,7 @@ func load() -> void:
 # check() 只处理跨配置表, 跨管理器或配置到资源索引的关系.
 # 当前宠物配置的表内结构和同文件 skill 引用已在 load() 阶段校验, 宠物到帧资源索引的关系在 assemble() 挂载帧表时校验.
 func check() -> void:
-    return
+    pass
 
 # 配置管理流程的第三步.
 # 资源扫描已经由 ConfigAssets 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
