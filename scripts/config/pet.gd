@@ -41,7 +41,7 @@ const PET_ACTION_BY_KEY := {
 }
 
 # 单个宠物技能配置条目.
-# 目前桌宠只需要读取技能槽位 ID, 但保留完整技能名称和描述, 方便后续 UI 或战斗逻辑直接按 ID 查询.
+# 当前业务主要读取技能槽位 ID, 但保留完整技能名称和描述, 方便后续 UI 或战斗逻辑直接按 ID 查询.
 class SkillEntry extends RefCounted:
     var id: int
     var name: String
@@ -157,7 +157,7 @@ func load() -> void:
         assert(_default_attributes.has(required_attribute_key), "宠物默认属性字段缺失: %s key:%s" % [Constants.CONFIG_PET_PATH, required_attribute_key])
 
     # pet 段是主数据.
-    # 每条记录会被转换成 Entry, 供桌宠选择, 战斗单位和动画构建器按 ID 读取.
+    # 每条记录会被转换成 Entry, 供战斗单位和动画构建器按 ID 读取.
     assert(config_data.has("pet"), "宠物配置缺少 pet 段: %s" % Constants.CONFIG_PET_PATH)
     var raw_pets = config_data.get("pet", [])
     assert(raw_pets is Array, "宠物配置 pet 段不是数组: %s" % Constants.CONFIG_PET_PATH)
