@@ -131,9 +131,9 @@ func _draw() -> void:
         # 当前帧矩形能直观看到图集裁剪尺寸和锚点位置是否符合预期.
         draw_rect(frame_rect, GUIDE_FRAME_COLOR, false, 1.0)
 
-# 子类用这个入口播放已经解析好的帧序列.
+# 调用方用这个入口播放已经解析好的帧序列.
 # source_frame_by_id 的 Dictionary[int, TexturePackerFrame] 中, int 表示当前资源的 frame_id.
-func _play_frame_sequence(source_atlas: Texture2D, source_frame_by_id: Dictionary[int, TexturePackerFrame], sequence_frame_ids: Array[int], frames_per_second: float, should_loop: bool) -> void:
+func play_frame_sequence(source_atlas: Texture2D, source_frame_by_id: Dictionary[int, TexturePackerFrame], sequence_frame_ids: Array[int], frames_per_second: float, should_loop: bool) -> void:
     # 注入新序列前重置播放进度, 让同一个播放器切换动作时不会继承旧帧下标和时间累计.
     atlas = source_atlas
     frame_by_id = source_frame_by_id
