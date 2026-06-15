@@ -11,23 +11,33 @@ config_version=5
 [application]
 
 config/name="sa.desktop"
-run/main_scene="uid://dw15n6dxjfxlt"
+run/main_scene="uid://c3j6jto41tvy7"
 config/features=PackedStringArray("4.6", "Forward Plus")
 boot_splash/bg_color=Color(0, 0, 0, 0)
 boot_splash/show_image=false
 config/icon="res://icon.svg"
 
+[autoload]
+
+YAML="*uid://ihqfb76y0nfd"
+GameData="*res://scripts/global/game_data.gd"
+RoleRecord="*res://scripts/global/role.record.gd"
+
 [display]
 
-window/size/viewport_width=180
-window/size/viewport_height=180
+window/size/viewport_width=800
+window/size/viewport_height=600
 window/size/resizable=false
 window/size/borderless=true
 window/size/transparent=true
-window/size/window_width_override=180
-window/size/window_height_override=180
+window/size/window_width_override=800
+window/size/window_height_override=600
 window/per_pixel_transparency/allowed=true
 window/per_pixel_transparency/enabled=true
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/miniyaml/plugin.cfg")
 
 [physics]
 
