@@ -7,7 +7,7 @@ extends Node2D
 # 这个脚本继承 Node2D, 因为它需要通过 `_draw()` 直接把图集中的局部区域绘制到 2D 坐标系里.
 # 外部调用方可以移动, 缩放或设置 z_index 来控制整个动画节点, 但不应该在这里混入宠物或角色业务判断.
 
-# 辅助线颜色只在 `show_guides` 打开时绘制.
+# 辅助线颜色只在 `guides_visible` 打开时绘制.
 # anchor_row 表示锚点所在横线, anchor_column 表示锚点所在竖线, frame 表示当前图集裁剪矩形.
 const GUIDE_ANCHOR_ROW_COLOR := Color(0.2, 0.95, 0.35, 0.9)
 const GUIDE_ANCHOR_COLUMN_COLOR := Color(1.0, 0.35, 0.25, 0.95)
@@ -38,22 +38,49 @@ var loop := Constants.ANIMATION_DEFAULT_LOOP
 # elapsed 每次跨过 frame_time 就消耗一段时间, 因此一次较大的 delta 也能推进多帧.
 var elapsed := 0.0
 # 是否绘制调试辅助线. 主流程通常关闭, 偏移测试页可以打开.
-# show_guides 改变后必须 queue_redraw(), 因为辅助线是在 `_draw()` 里即时绘制的.
-var show_guides := false
+# guides_visible 改变后必须 queue_redraw(), 因为辅助线是在 `_draw()` 里即时绘制的.
+var guides_visible := false
 
-# 只控制播放/暂停, 不改变当前帧.
-func set_playing(enabled: bool) -> void:
-    # 播放按钮和自动行为都可以调用这个方法; 它不重置 elapsed, 因此暂停/恢复会保持当前节奏状态.
-    playing = enabled
+# 调用方用这个入口播放已经解析好的帧序列.
+# source_frame_by_id 的 Dictionary[int, TexturePackerFrame] 中, int 表示当前资源的 frame_id.
+func play(source_atlas: Texture2D, source_frame_by_id: Dictionary[int, TexturePackerFrame], sequence_frame_ids: Array[int], frames_per_second: float, should_loop: bool) -> void:
+    # 注入新序列前重置播放进度, 让同一个播放器切换动作时不会继承旧帧下标和时间累计.
+    atlas = source_atlas
+    frame_by_id = source_frame_by_id
+    frame_ids = sequence_frame_ids
+    # speed/loop 由具体播放器决定, 基类不判断这是宠物还是角色.
+    speed = frames_per_second
+    loop = should_loop
+    # 新序列始终从第一帧开始播放, 让动作切换结果稳定且容易理解.
+    frame_index = 0
+    elapsed = 0.0
+    playing = true
+    queue_redraw()
+    
+# 继续播放当前帧序列, 不重置当前帧和累计时间.
+func start() -> void:
+    playing = true
 
-# 测试页可以切换循环, 便于停在最后一帧观察锚点和裁剪帧的相对关系.
-func set_loop_enabled(enabled: bool) -> void:
-    # loop 只影响下一次越过末帧时的行为, 不会立刻改变当前 frame_index.
-    loop = enabled
+# 暂停当前帧序列, 保留当前帧画面.
+func pause() -> void:
+    playing = false
 
-# 辅助线开关会触发重绘, 因为 `_draw()` 才是真正绘制线的位置.
-func set_guides_visible(enabled: bool) -> void:
-    show_guides = enabled
+# 开启循环播放. 这个状态只影响下一次越过末帧时的行为, 不会立刻改变当前帧.
+func enable_loop() -> void:
+    loop = true
+
+# 关闭循环播放. 当前动画播到末帧后会停在最后一帧.
+func disable_loop() -> void:
+    loop = false
+
+# 开启辅助线. 辅助线由 `_draw()` 绘制, 所以状态变化后需要请求重绘.
+func enable_guides() -> void:
+    guides_visible = true
+    queue_redraw()
+
+# 关闭辅助线. 关闭时同样要重绘, 才能把上一帧画出的线擦掉.
+func disable_guides() -> void:
+    guides_visible = false
     queue_redraw()
 
 # 手动前进或后退帧.
@@ -121,7 +148,7 @@ func _draw() -> void:
     # draw_texture_rect_region 使用同一张 atlas 的 region 绘制当前帧, 避免为每帧生成独立 Texture.
     draw_texture_rect_region(atlas, frame_rect, frame.region)
 
-    if show_guides:
+    if guides_visible:
         # 辅助线使用当前播放器局部坐标:
         # 横线和竖线穿过本节点原点, 小十字用于快速定位动画锚点.
         draw_line(Vector2(frame_rect.position.x, 0.0), Vector2(frame_rect.end.x, 0.0), GUIDE_ANCHOR_ROW_COLOR, 1.0)
@@ -130,19 +157,3 @@ func _draw() -> void:
         draw_line(Vector2(0.0, -5.0), Vector2(0.0, 5.0), GUIDE_ANCHOR_COLUMN_COLOR, 10.0)
         # 当前帧矩形能直观看到图集裁剪尺寸和锚点位置是否符合预期.
         draw_rect(frame_rect, GUIDE_FRAME_COLOR, false, 1.0)
-
-# 调用方用这个入口播放已经解析好的帧序列.
-# source_frame_by_id 的 Dictionary[int, TexturePackerFrame] 中, int 表示当前资源的 frame_id.
-func play_frame_sequence(source_atlas: Texture2D, source_frame_by_id: Dictionary[int, TexturePackerFrame], sequence_frame_ids: Array[int], frames_per_second: float, should_loop: bool) -> void:
-    # 注入新序列前重置播放进度, 让同一个播放器切换动作时不会继承旧帧下标和时间累计.
-    atlas = source_atlas
-    frame_by_id = source_frame_by_id
-    frame_ids = sequence_frame_ids
-    # speed/loop 由具体播放器决定, 基类不判断这是宠物还是角色.
-    speed = frames_per_second
-    loop = should_loop
-    # 新序列始终从第一帧开始播放, 让动作切换结果稳定且容易理解.
-    frame_index = 0
-    elapsed = 0.0
-    playing = true
-    queue_redraw()
