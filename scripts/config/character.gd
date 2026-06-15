@@ -44,7 +44,7 @@ const WEAPON_TYPE_BY_KEY := {
 
 const CHARACTER_KEYS := ["id", "name", "isRole", "description", "color", "sprite"]
 
-# 角色某个方向, 武器类型和动作组合下的帧号序列.
+# 角色某个方向, 武器类型和动作组合下的播放缓存.
 # key 由 Entry.direction_weapon_action_frames 使用 Vector3i(direction, weapon, action) 直接定位.
 class PlayInfo extends RefCounted:
     # Array[int] 中的 int 表示 YAML sprite 动作帧表里的 frame_id, ids 顺序就是播放顺序.
@@ -199,8 +199,7 @@ func assemble() -> void:
             var weapon_key := _weapon_type_to_key(key.y)
             var action_key := _character_action_to_key(key.z)
             for frame_id in play_info.ids:
-                var frame := character.frame_by_id.get(int(frame_id), null) as TexturePackerFrame
-                assert(frame != null, "角色动作帧表引用了不存在的可播放帧: character:%d weapon:%s direction:%s action:%s frame:%d" % [int(character_id), weapon_key, direction_key, action_key, int(frame_id)])
+                assert(character.frame_by_id.has(int(frame_id)), "角色动作帧表引用了不存在的可播放帧: character:%d weapon:%s direction:%s action:%s frame:%d" % [int(character_id), weapon_key, direction_key, action_key, int(frame_id)])
 
 func _direction_from_key(key: String) -> int:
     return int(DIRECTION_BY_KEY.get(key, Constants.Direction.Unknown))

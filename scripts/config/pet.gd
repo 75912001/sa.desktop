@@ -50,7 +50,7 @@ class SkillEntry extends RefCounted:
     func show() -> String:
         return name
 
-# 宠物某个方向和动作组合下的帧号序列.
+# 宠物某个方向和动作组合下的播放缓存.
 # key 由 Entry.direction_action_frames 使用 Vector2i(direction, action) 直接定位.
 class PlayInfo extends RefCounted:
     # Array[int] 中的 int 表示 YAML sprite 动作帧表里的 frame_id, ids 顺序就是播放顺序.
@@ -305,8 +305,7 @@ func assemble() -> void:
             var direction_key := _direction_to_key(key.x)
             var action_key := _pet_action_to_key(key.y)
             for frame_id in play_info.ids:
-                var frame := pet.frame_by_id.get(int(frame_id), null) as TexturePackerFrame
-                assert(frame != null, "宠物动作帧表引用了不存在的可播放帧: pet:%d direction:%s action:%s frame:%d" % [int(pet_id), direction_key, action_key, int(frame_id)])
+                assert(pet.frame_by_id.has(int(frame_id)), "宠物动作帧表引用了不存在的可播放帧: pet:%d direction:%s action:%s frame:%d" % [int(pet_id), direction_key, action_key, int(frame_id)])
 
 # 校验宠物元素配置.
 # Entry.elemental 是固定长度数组, 下标顺序对应 ELEMENT_KEYS: earth, water, fire, wind.
