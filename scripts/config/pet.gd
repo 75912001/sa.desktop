@@ -89,7 +89,7 @@ class Entry extends RefCounted:
     var direction_action_frames: Dictionary[Vector2i, PlayInfo] = {}
     # frame_id -> TexturePackerFrame.
     # Dictionary[int, TexturePackerFrame] 的 int 表示 YAML 动画帧表引用的 frame_id.
-    # 这是 `.tpsheet` 的 region/margin 和 offsets JSON 合成后的帧索引.
+    # 这是 `.tpsheet` 的 region/margin/offset 合成后的帧索引.
     # Entry 直接持有这份索引引用, PlayInfo 只保存帧号序列, 不复制每帧 TexturePackerFrame.
     var frame_by_id: Dictionary[int, TexturePackerFrame] = {}
     var atlas: Texture2D

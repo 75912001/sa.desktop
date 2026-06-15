@@ -119,9 +119,10 @@ func _load_texturepacker_frames(sheet_path: String, label: String) -> Dictionary
                 offset = Vector2i(int(offset_data[0]), int(offset_data[1]))
             var frame := TexturePackerFrame.new()
             frame.region = _rect_from_texturepacker_data(region_data as Dictionary)
-            # margin 是 TexturePacker 对裁剪透明边缘的补偿, offset 是素材偏移输入给出的额外绘制偏移.
-            # 两者相加后就是播放器绘制当前帧时使用的最终局部坐标.
-            frame.draw_position = Vector2(offset.x, offset.y) + margin_rect.position
+            # `.tpsheet` 的 offset 表示裁剪帧左上角相对锚点的偏移, margin 是 TexturePacker 对裁剪透明边缘的补偿.
+            # 运行期改用更直观的 anchor_position: 锚点在当前裁剪帧内部的位置.
+            var frame_top_left_from_anchor := Vector2(offset.x, offset.y) + margin_rect.position
+            frame.anchor_position = -frame_top_left_from_anchor
             frame_by_id[frame_id] = frame
 
     return frame_by_id
