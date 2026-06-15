@@ -6,7 +6,7 @@
 class_name Constants
 extends RefCounted
 
-# 项目配置文件、资源路径、动画画布参数和运行期枚举集中放在这里.
+# 项目配置文件、资源路径、动画播放参数和运行期枚举集中放在这里.
 # 配置表中的字符串 key 只允许在具体解析边界写死并转换为枚举, 不在公共常量中扩散.
 
 # 配置文件路径由 ConfigManager 统一读取.
@@ -40,10 +40,6 @@ const ASSET_CHARACTER_DIR := "res://assets/character"
 const ANIMATION_DEFAULT_SPEED := 8.0
 const ANIMATION_WALK_SPEED := 10.0
 const ANIMATION_DEFAULT_LOOP := true
-
-# padding 给动画画布四周留一点空白, 避免极限帧贴到窗口边缘.
-# 实际画布大小仍由帧 region, margin 和可选 offset 计算得出; 这里不是宠物体型上限, 只是统一额外边距.
-const ANIMATION_PADDING := Vector2(24.0, 24.0)
 
 # 元素枚举.
 # 枚举数值是运行时配置解析使用的稳定值; 调整名称时不要改变已有数值.
