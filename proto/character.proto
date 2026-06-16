@@ -1,0 +1,36 @@
+syntax="proto3";
+
+package pb;
+
+option go_package = "saClient/proto";
+
+import "record.proto";
+import "pet.proto";
+
+// 角色动作
+enum CharacterAction {
+  CharacterAction_Unknow = 0; // 未知动作
+  CharacterAction_Attack = 1; // 攻击
+  CharacterAction_Wave = 2; // 挥手
+  CharacterAction_Faint = 3; // 晕倒
+  CharacterAction_Hurt = 4; // 受伤
+  CharacterAction_Defense = 5; // 防御
+  CharacterAction_Sad = 6; // 难过
+  CharacterAction_Angry = 7; // 生气
+  CharacterAction_Sit = 8; // 坐下
+  CharacterAction_Stand = 9; // 站立
+  CharacterAction_Throw = 10; // 扔东西
+  CharacterAction_Nod = 11; // 点头
+  CharacterAction_Walk = 12; // 行走
+  CharacterAction_Happy = 13; // 开心
+  CharacterAction_Max = 14; // 动作最大值
+}
+
+// 角色记录
+message CharacterRecord {
+  uint64 UUID = 1; // 角色UUID 每个用户的角色唯一ID
+  string Nick = 2; // 昵称
+  map<uint32, uint64> AssetIDRecordMap = 10; // 资产表 key: 资产ID-角色基础 AssetIDRecord value: 数值
+  map<uint64, RecordPrimary> RecordMap = 1000; // 记录表 key: 记录-主要ID
+  map<uint64, PetRecord> PetRecordMap = 2000; // 宠物记录表 key: 宠物UUID
+}

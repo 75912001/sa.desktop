@@ -1,0 +1,52 @@
+syntax="proto3";
+
+package pb;
+
+option go_package = "saClient/proto";
+
+import "record.proto";
+
+////////////////////////////////////////////////////////////
+// 装备 Equipment
+////////////////////////////////////////////////////////////
+// 装备-类型
+enum EquipmentType {
+  EquipmentType_Unknow = 0; // 未知
+  EquipmentType_Necklace = 1; // 项链
+  EquipmentType_Helmet = 2; // 头
+  EquipmentType_Ring = 3; // 戒指
+  EquipmentType_Weapon = 4; // 武器
+  EquipmentType_Chest = 5; // 胸
+  EquipmentType_Shield = 6; // 盾牌
+  EquipmentType_Gloves = 7; // 手套
+  EquipmentType_Belt = 8; // 腰带
+  EquipmentType_Boots = 9; // 靴子
+  EquipmentType_Max = 10; // 类型-最大值
+}
+
+// 装备-记录
+message EquipmentRecord {
+  uint64 UUID = 1; // 唯一ID
+  map<int32, uint64> RecordBaseMap = 10; // 资产表 key: EquipmentRecordBase value: 数值
+  map<int32, RecordPrimary> RecordMap = 1000; // 记录表 key: EquipmentRecordPrimary
+}
+
+// 装备-记录-基础
+enum EquipmentRecordBase {
+  EquipmentRecordBase_Unknow = 0; // 未知
+
+
+  EquipmentRecordBase_DamagePercent = 10000; // 伤害百分比(0,100]
+  EquipmentRecordBase_CritRate = 10001; // 暴击概率 范围(0,100]
+  EquipmentRecordBase_CritDamageBonusRate = 10002; // 暴击伤害加成倍数 范围(0,100]
+}
+
+enum EquipmentRecordPrimary {
+  EquipmentRecordPrimary_Unknow = 0; // 未知
+  EquipmentRecordPrimary_Slot = 1; // 孔
+}
+
+enum EquipmentRecordSecondary {
+  EquipmentRecordSecondary_Unknow = 0; // 未知
+  EquipmentRecordSecondary_Slot_Data = 1; // 孔数据
+}

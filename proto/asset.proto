@@ -1,0 +1,116 @@
+syntax="proto3";
+
+package pb;
+
+option go_package = "saClient/proto";
+
+// 资产-分段 uint32 AssetID 最大值为: 4294,967295
+// 采用分段编码方式, 定义不同类型资产ID范围
+// A[1,4293] B[0,999999]
+
+// ⚠️ 实际上 enum 出来的是 int32 所以最大值为: 2147,483647
+// A[1,2146] B[0,999999]
+
+// 资产类型
+enum AssetType {
+  AssetType_Record = 0; // 记录 [1,1000000]  包含角色, 宠物, 等
+  AssetType_Character = 1; // 角色 [1000001,1999999]
+  AssetType_Map = 2; // 地图 [2000001,2999999]
+  AssetType_Item = 3; // 物品 [3000001,3999999]
+  AssetType_Pet = 4; // 宠物 [4000001,4999999]
+  AssetType_NPC = 5; // NPC [5000001,5999999]
+  AssetType_Decoration = 6; // 装饰物 [6000001,6999999]
+  AssetType_Building = 7; // 建筑物 [7000001,7999999]
+  AssetType_Plant = 8; // 植物 [8000001,8999999]
+}
+
+// 资产ID-数值范围
+enum AssetIDRange {
+  AssetIDRange_Unknow = 0; // 未知范围
+
+  AssetIDRange_Record_Start = 1; // 记录-开始
+  AssetIDRange_Record_End = 1000000; // 记录-结束
+
+  AssetIDRange_Character_Start = 1000001; // 角色-开始
+  AssetIDRange_Character_End = 1999999; // 角色-结束
+
+  AssetIDRange_Map_Start = 2000001; // 地图-开始
+  AssetIDRange_Map_End = 2999999; // 地图-结束
+
+  AssetIDRange_Item_Start = 3000001; // 物品-开始
+  AssetIDRange_Item_End = 3999999; // 物品-结束
+
+  AssetIDRange_Pet_Start = 4000001; // 宠物-开始
+  AssetIDRange_Pet_End = 4999999; // 宠物-结束
+
+  AssetIDRange_NPC_Start = 5000001; // NPC-开始
+  AssetIDRange_NPC_End = 5999999; // NPC-结束
+
+  AssetIDRange_Decoration_Start = 6000001; // 装饰物-开始
+  AssetIDRange_Decoration_End = 6999999; // 装饰物-结束
+
+  AssetIDRange_Building_Start = 7000001; // 建筑物-开始
+  AssetIDRange_Building_End = 7999999; // 建筑物-结束
+
+  AssetIDRange_Plant_Start = 8000001; // 植物-开始
+  AssetIDRange_Plant_End = 8999999; // 植物-结束
+}
+
+// 资产ID-记录 [1,1000000]
+enum AssetIDRecord {
+  AssetIDRecord_Unknow = 0; // 未知
+
+  // 通用 [1,1000]
+  AssetIDRecord_AssetID = 1; // 资产ID
+  AssetIDRecord_Exp = 2; // 经验值
+  AssetIDRecord_HP = 3; // 生命值
+  AssetIDRecord_MP = 4; // 魔法值
+  AssetIDRecord_CreateTimestamp = 5; // 创建时间戳
+  AssetIDRecord_MapID = 7; // 所在地图ID
+  AssetIDRecord_Direction = 10; // 方向
+  AssetIDRecord_Action = 11; // 动作
+  AssetIDRecord_RebirthCount = 13; // 转生次数 [0, 配置表最大值]
+
+  AssetIDRecord_ElementalEarth = 101; // 元素属性-土
+  AssetIDRecord_ElementalWater = 102; // 元素属性-水
+  AssetIDRecord_ElementalFire = 103; // 元素属性-火
+  AssetIDRecord_ElementalWind = 104; // 元素属性-风
+
+  // 角色 [1001,2000]
+  AssetIDRecord_Character_LastLoginTimestamp = 1001; // 上次登录时间戳
+  AssetIDRecord_Character_LastLogoutTimestamp = 1002; // 上次登出时间戳
+  AssetIDRecord_Character_AvailablePoint = 1003; // 可用点数 - 出生/升级/转生 后获得的可用点数
+
+  AssetIDRecord_Character_AttributesStrength = 1101; // 腕力 (1HP, 1攻, 0.1防) [主要提升攻击力，HP 提升较少]
+  AssetIDRecord_Character_AttributesEndurance = 1102; // 耐力 (1HP, 0.1攻, 1防) [主要提升防御力，HP 提升较少]
+  AssetIDRecord_Character_AttributesAgility = 1103; // 敏捷 (1HP, 1敏捷, 0.05攻, 0.05防) [主要提升敏捷，HP 提升较少]
+  AssetIDRecord_Character_AttributesStamina = 1104; // 体力 (4HP, 0.1攻击, 0.1防御) [对 HP 提升最大，是 "血牛" 角色首选]
+
+  // 宠物 [2001,3000]
+  AssetIDRecord_Pet_AttributesAttack = 2001; // 宠物属性-攻击
+  AssetIDRecord_Pet_AttributesDefense = 2002; // 宠物属性-防御
+  AssetIDRecord_Pet_AttributesAgility = 2003; // 宠物属性-敏捷
+  AssetIDRecord_Pet_AttributesHP = 2004; // 宠物属性-生命
+  AssetIDRecord_Pet_Loyalty = 2005; // 宠物忠诚度 [0,100]
+
+  // 宠物属性-初始属性, 用户计算成长率,预测宠物最终属性
+  AssetIDRecord_Pet_AttributesLevel_InitialStats = 2101; // 宠物属性-等级-初始属性
+  AssetIDRecord_Pet_AttributesAttack_InitialStats = 2102; // 宠物属性-攻击-初始属性
+  AssetIDRecord_Pet_AttributesDefense_InitialStats = 2103; // 宠物属性-防御-初始属性
+  AssetIDRecord_Pet_AttributesAgility_InitialStats = 2104; // 宠物属性-敏捷-初始属性
+  AssetIDRecord_Pet_AttributesHP_InitialStats = 2105; // 宠物属性-生命-初始属性
+}
+
+// 资产方向
+enum AssetDirection {
+  AssetDirection_Unknow = 0; // 未知方向
+  AssetDirection_Up = 1; // 上
+  AssetDirection_UpRight = 2; // 右上
+  AssetDirection_Right = 3; // 右
+  AssetDirection_DownRight = 4; // 右下
+  AssetDirection_Down = 5; // 下
+  AssetDirection_DownLeft = 6; // 左下
+  AssetDirection_Left = 7; // 左
+  AssetDirection_UpLeft = 8; // 左上
+  AssetDirection_Max = 9; // 方向最大值
+}

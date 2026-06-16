@@ -1,0 +1,38 @@
+syntax="proto3";
+
+package pb;
+
+option go_package = "saClient/proto";
+
+// 键值对 key:uint32 value:uint32
+message KV {
+  uint32 Key = 1;
+  uint32 Value = 2;
+}
+
+// 矩形
+message Rect {
+  Point Pos = 1; // 位置
+  int32 Width = 3; // 宽度
+  int32 Height = 4; // 高度
+}
+
+// 图像
+message Image {
+  int32 Width = 2; // 宽度
+  int32 Height = 3; // 高度
+}
+
+// 坐标点
+message Point {
+  int32 X = 1; // X坐标
+  int32 Y = 2; // Y坐标
+}
+
+// 等级范围
+enum LevelRange {
+  LevelRange_Unknow = 0; // 未知参数
+
+  LevelRange_Min = 1; // 最小等级
+  LevelRange_Max = 140; // 最大等级
+}

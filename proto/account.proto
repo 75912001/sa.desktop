@@ -1,0 +1,12 @@
+syntax="proto3";
+
+package pb;
+
+option go_package = "saClient/proto";
+
+import "character.proto";
+
+// 账号记录
+message AccountRecord {
+  map<uint64, CharacterRecord> CharacterRecordMap = 10; // 角色记录表 key: 角色UUID
+}

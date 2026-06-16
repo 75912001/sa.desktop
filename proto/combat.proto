@@ -1,0 +1,20 @@
+syntax="proto3";
+
+package pb;
+
+option go_package = "saClient/proto";
+
+
+// 战斗-敌人组-敌人数量-范围
+enum CombatEnemyGroupEnemyCountRange {
+  CombatEnemyGroupEnemyCountRange_Unknow = 0; // 未知参数
+
+  CombatEnemyGroupEnemyCountRange_Min = 1; // 敌人组-敌人数量最小值
+  CombatEnemyGroupEnemyCountRange_Max = 10; // 敌人组-敌人数量最大值
+}
+
+// 战斗-敌人组-宝宝概率-范围
+enum CombatEnemyGroupBabyRate {
+  CombatEnemyGroupBabyRate_Min = 0; // 敌人组-宝宝概率最小值
+  CombatEnemyGroupBabyRate_Max = 100000; // 敌人组-宝宝概率最大值(十万分率,100000=100%)
+}
