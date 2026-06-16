@@ -1,0 +1,16 @@
+syntax="proto3";
+
+package pb;
+
+option go_package = "saClient/proto";
+
+// 角色-武器类型
+enum CharacterWeaponType {
+  CharacterWeaponType_Unknow = 0; // 未知武器类型
+  CharacterWeaponType_Unarmed = 1; // 赤手空拳
+  CharacterWeaponType_Axe = 2; // 斧
+  CharacterWeaponType_Bow = 3; // 弓
+  CharacterWeaponType_Spear = 4; // 矛
+  CharacterWeaponType_Stick = 5; // 棍
+  CharacterWeaponType_Max = 6; // 武器类型-最大值
+}
