@@ -17,9 +17,9 @@ func play_pet(pet_id: int, direction: int, action: int, target_anchor_position: 
         push_error("宠物动画动作未知: pet=%d action=%d" % [pet_id, action])
         return false
 
-    # GameData.pet_config 已在主场景前由 ConfigManager 初始化.
+    # GGameData.pet_config 已在主场景前由 ConfigManager 初始化.
     # get_by_id() 会按需懒加载 atlas, 播放器拿到 Entry 后不再关心资源路径.
-    var entry := GameData.pet_config.get_by_id(pet_id)
+    var entry := GGameData.pet_config.get_by_id(pet_id)
     if entry == null:
         push_error("宠物配置不存在: pet=%d" % pet_id)
         return false

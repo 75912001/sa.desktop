@@ -22,7 +22,7 @@ func play_character(character_id: int, weapon: int, direction: int, action: int,
 
     # ConfigCharacter.Entry 保存角色级共享 atlas/frame_by_id 和结构化动作帧表.
     # get_by_id() 负责按需懒加载图集, 播放器只消费已经组装好的 Entry.
-    var entry := GameData.character_config.get_by_id(character_id)
+    var entry := GGameData.character_config.get_by_id(character_id)
     if entry == null:
         push_error("角色配置不存在: character=%d" % character_id)
         return false
