@@ -35,7 +35,7 @@ func _init() -> void:
 static func get_shared() -> ConfigManager:
     if _shared_manager == null:
         # 共享实例只允许初始化一次.
-        # 后续业务代码多次读取 GameData 或 ConfigManager 时, 都会复用这一份已经校验过的缓存.
+        # 后续业务代码多次读取 GGameData 或 ConfigManager 时, 都会复用这一份已经校验过的缓存.
         _shared_manager = ConfigManager.new()
 
         # 第一阶段集中扫描 assets.
