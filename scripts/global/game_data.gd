@@ -1,14 +1,14 @@
 extends Node
 
-# GameData 是项目运行期的全局数据入口, 通过 Godot Autoload 在主场景之前加入场景树.
+# GGameData 是项目运行期的全局数据入口, 通过 Godot Autoload 在主场景之前加入场景树.
 # 它不直接解析 YAML 或扫描资源, 而是负责在启动阶段触发 ConfigManager 的共享实例初始化.
-# 这样后续业务脚本可以直接访问 GameData.pet_config / GameData.character_config 等全局入口,
+# 这样后续业务脚本可以直接访问 GGameData.pet_config / GGameData.character_config 等全局入口,
 # 不需要在各自脚本里显式调用 ConfigManager.get_shared() 来间接触发配置加载.
 
 var _config_manager: ConfigManager = null
 
 # 共享配置总入口.
-# 属性 getter 会先调用 _ensure_initialized(), 防止某些脚本在 GameData._ready() 前访问全局数据时拿到空值.
+# 属性 getter 会先调用 _ensure_initialized(), 防止某些脚本在 GGameData._ready() 前访问全局数据时拿到空值.
 var config_manager: ConfigManager:
     get:
         _ensure_initialized()
@@ -30,7 +30,7 @@ var enemy_group_config: ConfigEnemyGroup:
         return config_manager.enemy_group
 
 # Autoload 节点 ready 时主动初始化共享配置.
-# project.godot 中会把 GameData 放在 YAML Autoload 后面, 保证 MiniYAML 已经可用于 ConfigManager.load_yaml().
+# project.godot 中会把 GGameData 放在 YAML Autoload 后面, 保证 MiniYAML 已经可用于 ConfigManager.load_yaml().
 func _ready() -> void:
     _ensure_initialized()
 
