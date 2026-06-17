@@ -10,7 +10,7 @@ static var _shared_manager = null
 
 # 这些字段分别持有 assets 加载器和具体配置管理器.
 # ConfigManager 只负责统一创建、加载、校验和组装, 具体查询逻辑仍放在各自的管理器里.
-var assets: ConfigAssets
+var assets: AssetsConfig
 var pet: ConfigPet
 var character: ConfigCharacter
 var enemy_group: ConfigEnemyGroup
@@ -20,7 +20,7 @@ var enemy_group: ConfigEnemyGroup
 func _init() -> void:
     # 这里只做对象创建, 不读取文件.
     # 这样 ConfigManager.new() 本身保持轻量, 真正可能失败的资源目录扫描和 YAML 读取集中在 get_shared() 的统一流程里.
-    assets = ConfigAssets.new()
+    assets = AssetsConfig.new()
     pet = ConfigPet.new()
     character = ConfigCharacter.new()
     enemy_group = ConfigEnemyGroup.new()

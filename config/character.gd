@@ -80,7 +80,7 @@ var _by_id: Dictionary[int, Entry] = {}
 
 # 配置管理流程的第一步.
 # 读取 YAML 并按 character: 段的声明顺序写入 ID 索引.
-# 资源帧表已由 ConfigAssets 统一加载; 本函数只解析 YAML 字段和方向, 武器类型, 动作到帧号序列的关系.
+# 资源帧表已由 AssetsConfig 统一加载; 本函数只解析 YAML 字段和方向, 武器类型, 动作到帧号序列的关系.
 func load() -> void:
     var config_data := ConfigManager.load_yaml(Constants.CONFIG_CHARACTER_PATH)
     assert(config_data.has("character"), "角色配置缺少 character 段: %s" % Constants.CONFIG_CHARACTER_PATH)
@@ -179,13 +179,13 @@ func check() -> void:
     pass
 
 # 配置管理流程的第三步.
-# 资源扫描已经由 ConfigAssets 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
+# 资源扫描已经由 AssetsConfig 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
 # PNG 路径可由角色 ID 和资源目录常量计算, 不需要在 Entry 中常驻保存.
 # 这里关心的是 character.yaml 中声明的角色 ID 和 frame id 是否能在配置 Entry 中直接找到.
 func assemble() -> void:
     for character_id in _by_id:
         var character: Entry = _by_id[character_id]
-        var frame_table := ConfigManager.get_shared().assets.character_frame_table_by_id.get(int(character_id), null) as ConfigAssets.FrameTable
+        var frame_table := ConfigManager.get_shared().assets.character_frame_table_by_id.get(int(character_id), null) as AssetsConfig.FrameTable
         assert(frame_table != null, "角色缺少同 ID 可播放资源: character:%d" % int(character_id))
         character.frame_by_id = frame_table.frame_by_id
 

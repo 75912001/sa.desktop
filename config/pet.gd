@@ -114,7 +114,7 @@ var _by_id: Dictionary[int, Entry] = {}
 
 # 配置管理流程的第一步.
 # 读取 YAML 并建立技能, 默认属性和宠物 ID 索引.
-# 资源帧表已由 ConfigAssets 统一加载; 本函数只解析 YAML 字段和方向, 动作到帧号序列的关系.
+# 资源帧表已由 AssetsConfig 统一加载; 本函数只解析 YAML 字段和方向, 动作到帧号序列的关系.
 func load() -> void:
     var config_data := ConfigManager.load_yaml(Constants.CONFIG_PET_PATH)
 
@@ -288,11 +288,11 @@ func check() -> void:
     pass
 
 # 配置管理流程的第三步.
-# 资源扫描已经由 ConfigAssets 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
+# 资源扫描已经由 AssetsConfig 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
 func assemble() -> void:
     for pet_id in _by_id.keys():
         var pet := _by_id[pet_id] as Entry
-        var frame_table := ConfigManager.get_shared().assets.pet_frame_table_by_id.get(int(pet_id), null) as ConfigAssets.FrameTable
+        var frame_table := ConfigManager.get_shared().assets.pet_frame_table_by_id.get(int(pet_id), null) as AssetsConfig.FrameTable
         assert(frame_table != null, "宠物缺少同 ID 可播放资源: pet:%d" % int(pet_id))
         pet.frame_by_id = frame_table.frame_by_id
 
