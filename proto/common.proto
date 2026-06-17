@@ -17,12 +17,6 @@ message Rect {
   int32 Height = 4; // 高度
 }
 
-// 图像
-message Image {
-  int32 Width = 2; // 宽度
-  int32 Height = 3; // 高度
-}
-
 // 坐标点
 message Point {
   int32 X = 1; // X坐标
