@@ -4,44 +4,6 @@ extends RefCounted
 # 统一读取 config/character.yaml 的角色配置.
 # 这个类使用 MiniYAML 解析 YAML, 只消费 character: 段, 并转换成结构化角色条目.
 
-# character.yaml sprite 字段中的方向 key 到运行期枚举的映射.
-const DIRECTION_BY_KEY := {
-    "up": Constants.Direction.Up,
-    "upright": Constants.Direction.UpRight,
-    "right": Constants.Direction.Right,
-    "downright": Constants.Direction.DownRight,
-    "down": Constants.Direction.Down,
-    "downleft": Constants.Direction.DownLeft,
-    "left": Constants.Direction.Left,
-    "upleft": Constants.Direction.UpLeft,
-}
-
-# character.yaml sprite 字段中的动作 key 到运行期枚举的映射.
-const CHARACTER_ACTION_BY_KEY := {
-    "attack": Constants.CharacterAction.Attack,
-    "wave": Constants.CharacterAction.Wave,
-    "faint": Constants.CharacterAction.Faint,
-    "hurt": Constants.CharacterAction.Hurt,
-    "defense": Constants.CharacterAction.Defense,
-    "sad": Constants.CharacterAction.Sad,
-    "angry": Constants.CharacterAction.Angry,
-    "sit": Constants.CharacterAction.Sit,
-    "stand": Constants.CharacterAction.Stand,
-    "throw": Constants.CharacterAction.Throw,
-    "nod": Constants.CharacterAction.Nod,
-    "walk": Constants.CharacterAction.Walk,
-    "happy": Constants.CharacterAction.Happy,
-}
-
-# character.yaml sprite 字段中的武器类型 key 到运行期枚举的映射.
-const WEAPON_TYPE_BY_KEY := {
-    "unarmed": Constants.WeaponType.Unarmed,
-    "axe": Constants.WeaponType.Axe,
-    "bow": Constants.WeaponType.Bow,
-    "spear": Constants.WeaponType.Spear,
-    "stick": Constants.WeaponType.Stick,
-}
-
 const CHARACTER_KEYS := ["id", "name", "isRole", "description", "color", "sprite"]
 
 # 角色某个方向, 武器类型和动作组合下的播放缓存.
@@ -58,7 +20,7 @@ class Entry extends RefCounted:
     var description: String
     var color: String
     # Vector3i(direction, weapon, action) -> PlayInfo.
-    # Vector3i.x 是 Constants.Direction, y 是 Constants.WeaponType, z 是 Constants.CharacterAction.
+    # Vector3i.x 是 proto AssetDirection, y 是 proto CharacterWeaponType, z 是 proto CharacterAction.
     # 角色资源要求每个方向, 武器类型和动作组合都存在, 因此播放缓存可直接定位帧号表.
     var direction_weapon_action_frames: Dictionary[Vector3i, PlayInfo] = {}
     # frame_id -> TexturePackerFrame.
@@ -80,7 +42,7 @@ var _by_id: Dictionary[int, Entry] = {}
 
 # 配置管理流程的第一步.
 # 读取 YAML 并按 character: 段的声明顺序写入 ID 索引.
-# 资源帧表已由 ConfigAssets 统一加载; 本函数只解析 YAML 字段和方向, 武器类型, 动作到帧号序列的关系.
+# 资源帧表已由 AssetsConfig 统一加载; 本函数只解析 YAML 字段和方向, 武器类型, 动作到帧号序列的关系.
 func load() -> void:
     var config_data := ConfigManager.load_yaml(Constants.CONFIG_CHARACTER_PATH)
     assert(config_data.has("character"), "角色配置缺少 character 段: %s" % Constants.CONFIG_CHARACTER_PATH)
@@ -130,7 +92,7 @@ func load() -> void:
         var action_frame_dict := raw_action_frames as Dictionary
         for weapon in action_frame_dict.keys():
             var weapon_value := _weapon_type_from_key(str(weapon))
-            assert(weapon_value != Constants.WeaponType.Unknown, "角色动作帧表武器类型未知: character:%d weapon:%s" % [character.id, str(weapon)])
+            assert(weapon_value != GPB.CharacterWeaponType.CharacterWeaponType_Unknow, "角色动作帧表武器类型未知: character:%d weapon:%s" % [character.id, str(weapon)])
 
             var weapon_data = action_frame_dict[weapon]
             assert(weapon_data is Dictionary, "角色动作帧表武器类型配置须为对象: character:%d weapon:%s" % [character.id, str(weapon)])
@@ -138,7 +100,7 @@ func load() -> void:
             var weapon_dict := weapon_data as Dictionary
             for direction_key in weapon_dict.keys():
                 var direction := _direction_from_key(str(direction_key))
-                assert(direction != Constants.Direction.Unknown, "角色动作帧表方向未知: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction_key)])
+                assert(direction != GPB.AssetDirection.AssetDirection_Unknow, "角色动作帧表方向未知: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction_key)])
 
                 var direction_data = weapon_dict[direction_key]
                 assert(direction_data is Dictionary, "角色动作帧表方向配置须为对象: character:%d weapon:%s direction:%s" % [character.id, str(weapon), str(direction_key)])
@@ -146,7 +108,7 @@ func load() -> void:
                 var direction_dict := direction_data as Dictionary
                 for action in direction_dict.keys():
                     var action_value := _character_action_from_key(str(action))
-                    assert(action_value != Constants.CharacterAction.Unknown, "角色动作帧表动作未知: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction_key), str(action)])
+                    assert(action_value != GPB.CharacterAction.CharacterAction_Unknow, "角色动作帧表动作未知: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction_key), str(action)])
 
                     var frame_ids = direction_dict[action]
                     assert(frame_ids is Array, "角色动作帧表动作配置须为帧号数组: character:%d weapon:%s direction:%s action:%s" % [character.id, str(weapon), str(direction_key), str(action)])
@@ -179,13 +141,13 @@ func check() -> void:
     pass
 
 # 配置管理流程的第三步.
-# 资源扫描已经由 ConfigAssets 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
+# 资源扫描已经由 AssetsConfig 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
 # PNG 路径可由角色 ID 和资源目录常量计算, 不需要在 Entry 中常驻保存.
 # 这里关心的是 character.yaml 中声明的角色 ID 和 frame id 是否能在配置 Entry 中直接找到.
 func assemble() -> void:
     for character_id in _by_id:
         var character: Entry = _by_id[character_id]
-        var frame_table := ConfigManager.get_shared().assets.character_frame_table_by_id.get(int(character_id), null) as ConfigAssets.FrameTable
+        var frame_table := ConfigManager.get_shared().assets.character_frame_table_by_id.get(int(character_id), null) as AssetsConfig.FrameTable
         assert(frame_table != null, "角色缺少同 ID 可播放资源: character:%d" % int(character_id))
         character.frame_by_id = frame_table.frame_by_id
 
@@ -202,29 +164,29 @@ func assemble() -> void:
                 assert(character.frame_by_id.has(int(frame_id)), "角色动作帧表引用了不存在的可播放帧: character:%d weapon:%s direction:%s action:%s frame:%d" % [int(character_id), weapon_key, direction_key, action_key, int(frame_id)])
 
 func _direction_from_key(key: String) -> int:
-    return int(DIRECTION_BY_KEY.get(key, Constants.Direction.Unknown))
+    return int(Constants.DIRECTION_BY_KEY.get(key, GPB.AssetDirection.AssetDirection_Unknow))
 
 func _direction_to_key(direction: int) -> String:
-    for key in DIRECTION_BY_KEY.keys():
-        if int(DIRECTION_BY_KEY[key]) == direction:
+    for key in Constants.DIRECTION_BY_KEY.keys():
+        if int(Constants.DIRECTION_BY_KEY[key]) == direction:
             return str(key)
     return str(direction)
 
 func _character_action_from_key(key: String) -> int:
-    return int(CHARACTER_ACTION_BY_KEY.get(key, Constants.CharacterAction.Unknown))
+    return int(Constants.CHARACTER_ACTION_BY_KEY.get(key, GPB.CharacterAction.CharacterAction_Unknow))
 
 func _character_action_to_key(action: int) -> String:
-    for key in CHARACTER_ACTION_BY_KEY.keys():
-        if int(CHARACTER_ACTION_BY_KEY[key]) == action:
+    for key in Constants.CHARACTER_ACTION_BY_KEY.keys():
+        if int(Constants.CHARACTER_ACTION_BY_KEY[key]) == action:
             return str(key)
     return str(action)
 
 func _weapon_type_from_key(key: String) -> int:
-    return int(WEAPON_TYPE_BY_KEY.get(key, Constants.WeaponType.Unknown))
+    return int(Constants.WEAPON_TYPE_BY_KEY.get(key, GPB.CharacterWeaponType.CharacterWeaponType_Unknow))
 
 func _weapon_type_to_key(weapon: int) -> String:
-    for key in WEAPON_TYPE_BY_KEY.keys():
-        if int(WEAPON_TYPE_BY_KEY[key]) == weapon:
+    for key in Constants.WEAPON_TYPE_BY_KEY.keys():
+        if int(Constants.WEAPON_TYPE_BY_KEY[key]) == weapon:
             return str(key)
     return str(weapon)
 

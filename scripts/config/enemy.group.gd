@@ -6,12 +6,6 @@ extends RefCounted
 
 const GROUP_KEYS := ["id", "name", "isBoss", "countRange", "levelRange", "roleLevelOffset", "captured", "babyRate", "enemies"]
 const ENEMY_KEYS := ["id", "weight", "level"]
-const ENEMY_COUNT_MIN := 1
-const ENEMY_COUNT_MAX := 10
-const ENEMY_LEVEL_MIN := 1
-const ENEMY_LEVEL_MAX := 140
-const BABY_RATE_MIN := 0
-const BABY_RATE_MAX := 100000
 
 class EnemyEntry extends RefCounted:
     var id: int
@@ -78,15 +72,15 @@ func load() -> void:
             assert(raw_group_dict.has("countRange"), "普通敌人组缺少 countRange: group:%d" % group.id)
             assert(raw_group_dict.has("levelRange") or raw_group_dict.has("roleLevelOffset"), "普通敌人组缺少 levelRange 或 roleLevelOffset: group:%d" % group.id)
             group.count_range = _parse_int_range(raw_group_dict.get("countRange", null), "敌人组 countRange 非法: group:%d" % group.id)
-            _assert_range_bounds(group.count_range, ENEMY_COUNT_MIN, ENEMY_COUNT_MAX, "敌人组 countRange 超出范围: group:%d" % group.id)
+            _assert_range_bounds(group.count_range, GPB.CombatEnemyGroupEnemyCountRange.CombatEnemyGroupEnemyCountRange_Min, GPB.CombatEnemyGroupEnemyCountRange.CombatEnemyGroupEnemyCountRange_Max, "敌人组 countRange 超出范围: group:%d" % group.id)
             if raw_group_dict.has("levelRange"):
                 group.level_range = _parse_int_range(raw_group_dict.get("levelRange", null), "敌人组 levelRange 非法: group:%d" % group.id)
-                _assert_range_bounds(group.level_range, ENEMY_LEVEL_MIN, ENEMY_LEVEL_MAX, "敌人组 levelRange 超出范围: group:%d" % group.id)
+                _assert_range_bounds(group.level_range, GPB.LevelRange.LevelRange_Min, GPB.LevelRange.LevelRange_Max, "敌人组 levelRange 超出范围: group:%d" % group.id)
             if raw_group_dict.has("roleLevelOffset"):
                 group.role_level_offset = _parse_int_range(raw_group_dict.get("roleLevelOffset", null), "敌人组 roleLevelOffset 非法: group:%d" % group.id)
             group.captured = _parse_bool(raw_group_dict.get("captured", true), "敌人组 captured 非法: group:%d" % group.id)
             group.baby_rate = _parse_int(raw_group_dict.get("babyRate", 0), "敌人组 babyRate 非法: group:%d" % group.id)
-            assert(group.baby_rate >= BABY_RATE_MIN and group.baby_rate <= BABY_RATE_MAX, "敌人组 babyRate 超出范围: group:%d value:%d" % [group.id, group.baby_rate])
+            assert(group.baby_rate >= GPB.CombatEnemyGroupBabyRate.CombatEnemyGroupBabyRate_Min and group.baby_rate <= GPB.CombatEnemyGroupBabyRate.CombatEnemyGroupBabyRate_Max, "敌人组 babyRate 超出范围: group:%d value:%d" % [group.id, group.baby_rate])
 
         # enemies 中的 id 复用 pet.yaml 里的宠物 ID.
         # 这里只解析成 EnemyEntry, 引用是否合法放到 check() 阶段统一验证.
@@ -94,7 +88,7 @@ func load() -> void:
         var enemies: Array[EnemyEntry] = []
         assert(raw_enemies is Array, "敌人组 enemies 须为数组: group:%d" % group.id)
         assert(not (raw_enemies as Array).is_empty(), "敌人组 enemies 不能为空: group:%d" % group.id)
-        assert((raw_enemies as Array).size() <= ENEMY_COUNT_MAX, "敌人组 enemies 超过最大站位数量: group:%d size:%d" % [group.id, (raw_enemies as Array).size()])
+        assert((raw_enemies as Array).size() <= GPB.CombatEnemyGroupEnemyCountRange.CombatEnemyGroupEnemyCountRange_Max, "敌人组 enemies 超过最大站位数量: group:%d size:%d" % [group.id, (raw_enemies as Array).size()])
 
         for raw_enemy in raw_enemies:
             assert(raw_enemy is Dictionary, "敌人组 enemy 须为对象: group:%d" % group.id)
@@ -108,14 +102,14 @@ func load() -> void:
                 _assert_absent(enemy_data, "weight", "Boss 敌人组 enemy.weight 无效, 不应配置: group:%d enemy:%d" % [group.id, enemy.id])
                 assert(enemy_data.has("level"), "Boss 敌人组 enemy 必须指定 level: group:%d enemy:%d" % [group.id, enemy.id])
                 enemy.level = _parse_int(enemy_data.get("level", null), "Boss 敌人组 enemy level 非法: group:%d enemy:%d" % [group.id, enemy.id])
-                assert(enemy.level >= ENEMY_LEVEL_MIN and enemy.level <= ENEMY_LEVEL_MAX, "Boss 敌人组 enemy level 超出范围: group:%d enemy:%d level:%d" % [group.id, enemy.id, enemy.level])
+                assert(enemy.level >= GPB.LevelRange.LevelRange_Min and enemy.level <= GPB.LevelRange.LevelRange_Max, "Boss 敌人组 enemy level 超出范围: group:%d enemy:%d level:%d" % [group.id, enemy.id, enemy.level])
                 enemy.weight = 0
             else:
                 enemy.weight = _parse_int(enemy_data.get("weight", 0), "敌人组 enemy weight 非法: group:%d enemy:%d" % [group.id, enemy.id])
                 assert(enemy.weight >= 0, "敌人组 enemy weight 不能为负数: group:%d enemy:%d weight:%d" % [group.id, enemy.id, enemy.weight])
                 if enemy_data.has("level"):
                     enemy.level = _parse_int(enemy_data.get("level", null), "敌人组 enemy level 非法: group:%d enemy:%d" % [group.id, enemy.id])
-                    assert(enemy.level >= ENEMY_LEVEL_MIN and enemy.level <= ENEMY_LEVEL_MAX, "敌人组 enemy level 超出范围: group:%d enemy:%d level:%d" % [group.id, enemy.id, enemy.level])
+                    assert(enemy.level >= GPB.LevelRange.LevelRange_Min and enemy.level <= GPB.LevelRange.LevelRange_Max, "敌人组 enemy level 超出范围: group:%d enemy:%d level:%d" % [group.id, enemy.id, enemy.level])
             enemies.append(enemy)
         group.enemies = enemies
 
