@@ -1,4 +1,4 @@
-extends Node
+class PB extends RefCounted
 
 #
 # BSD 3-Clause License
