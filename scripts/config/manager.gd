@@ -1,65 +1,112 @@
 class_name ConfigManager
-extends RefCounted
+extends Node
 
-# 配置总入口是 RefCounted, 不是 Node.
-# 它不会被 Godot 场景树自动调用 _ready(), 只有业务代码主动调用 ConfigManager.get_shared() 时才会创建和加载.
+# ConfigManager 是项目运行期的全局配置入口.
+# project.godot 会把它注册为 GCfgMgr Autoload, 让主场景运行前先完成配置初始化.
 
 # 保存整个运行期间共享的配置管理器实例.
-# 第一次调用 ConfigManager.get_shared() 时创建, 后续调用都会复用同一个对象, 避免重复解析 YAML.
-static var _shared_manager = null
+# Autoload 场景下指向 GCfgMgr 节点; 非 Autoload 测试场景中首次调用 get_shared() 时会懒创建 fallback 实例.
+static var _shared_manager: ConfigManager = null
+
+# 标记共享配置是否已经完成 assets load -> config load -> config check -> assemble.
+var _is_initialized := false
+
+# 初始化过程中配置 assemble() 可能通过 ConfigManager.get_shared() 读取 assets.
+# 该标记用于避免 get_shared() 在初始化中途再次递归触发完整加载流程.
+var _is_initializing := false
 
 # 这些字段分别持有 assets 加载器和具体配置管理器.
 # ConfigManager 只负责统一创建、加载、校验和组装, 具体查询逻辑仍放在各自的管理器里.
-var assets: ConfigAssets
+var assets: AssetsConfig
 var pet: ConfigPet
 var character: ConfigCharacter
 var enemy_group: ConfigEnemyGroup
 
-# RefCounted 没有 Node 的 _ready() 生命周期.
-# 这里的 _init() 会在执行 ConfigManager.new() 时立即调用, 用来先创建空的配置管理器.
+# 共享配置总入口, 保留旧 wrapper 的访问形态, 方便业务脚本通过 GCfgMgr.config_manager 明确拿到自身.
+var config_manager: ConfigManager:
+    get:
+        _ensure_initialized()
+        return self
+
+# 宠物配置表入口, 可通过宠物 ID 查询完整的 ConfigPet.Entry.
+var pet_config: ConfigPet:
+    get:
+        _ensure_initialized()
+        return pet
+
+# 角色配置表入口, 给角色播放缓存和测试页按 ID 查询角色配置.
+var character_config: ConfigCharacter:
+    get:
+        _ensure_initialized()
+        return character
+
+# 敌人组配置表入口, 给战斗展示场景按 enemyGroupId 查询敌方单位配置.
+var enemy_group_config: ConfigEnemyGroup:
+    get:
+        _ensure_initialized()
+        return enemy_group
+
+# _init() 只创建各配置管理器对象, 不读取文件.
+# 这样节点实例化保持轻量, 真正可能失败的资源目录扫描和 YAML 读取集中在 _ensure_initialized() 的统一流程里.
 func _init() -> void:
-    # 这里只做对象创建, 不读取文件.
-    # 这样 ConfigManager.new() 本身保持轻量, 真正可能失败的资源目录扫描和 YAML 读取集中在 get_shared() 的统一流程里.
-    assets = ConfigAssets.new()
+    assets = AssetsConfig.new()
     pet = ConfigPet.new()
     character = ConfigCharacter.new()
     enemy_group = ConfigEnemyGroup.new()
 
+# Autoload 节点进入场景树时, 先把自身登记为共享配置实例.
+# 这样初始化过程中 ConfigPet/ConfigCharacter 再调用 ConfigManager.get_shared() 时, 会拿到同一个 GCfgMgr 节点.
+func _enter_tree() -> void:
+    _shared_manager = self
+
+# Autoload ready 时主动初始化共享配置.
+# project.godot 中 GCfgMgr 位于 YAML Autoload 后面, 保证 MiniYAML 已经可用于 ConfigManager.load_yaml().
+func _ready() -> void:
+    _ensure_initialized()
+
 # 对外获取共享配置入口.
 # 调用顺序是:
 # 1. 业务代码调用 ConfigManager.get_shared().
-# 2. 如果还没有共享实例, 这里执行 ConfigManager.new().
-# 3. new() 会自动触发 _init(), 先创建 pet/character/enemy_group 管理器.
-# 4. 回到 get_shared(), 先统一扫描 assets, 再按 config load -> config check -> assemble 顺序初始化.
-# 5. 返回已经准备好的共享管理器; 后续 get_shared() 直接返回缓存实例.
+# 2. Autoload 场景下直接返回 GCfgMgr; 非 Autoload 测试场景中会先创建 fallback 实例.
+# 3. get_shared() 会确保共享实例已经完成初始化, 后续调用直接返回同一份缓存.
 static func get_shared() -> ConfigManager:
     if _shared_manager == null:
-        # 共享实例只允许初始化一次.
-        # 后续业务代码多次读取 GGameData 或 ConfigManager 时, 都会复用这一份已经校验过的缓存.
         _shared_manager = ConfigManager.new()
-
-        # 第一阶段集中扫描 assets.
-        # 宠物和角色资源都在这里统一加载, 避免分散到各配置 load() 中隐式读取目录.
-        _shared_manager.assets.load()
-
-        # 第二阶段读取配置源文件并建立各自的基础缓存.
-        # ConfigPet 和 ConfigCharacter 的 load() 都只解析 YAML, 后续在 assemble() 中挂载帧表.
-        _shared_manager.pet.load()
-        _shared_manager.character.load()
-        _shared_manager.enemy_group.load()
-
-        # 第三阶段做校验.
-        # 这里资源索引和所有配置都已经完成 load, 可以做跨配置和配置到资源的检查.
-        _shared_manager.pet.check()
-        _shared_manager.character.check()
-        _shared_manager.enemy_group.check(_shared_manager.pet)
-
-        # 第四阶段做组装.
-        # 这里适合生成派生缓存或跨配置引用, 例如宠物技能槽位会引用同 ID 技能 Entry, 宠物和角色会挂载同 ID 帧表引用.
-        _shared_manager.pet.assemble()
-        _shared_manager.character.assemble()
-        _shared_manager.enemy_group.assemble()
+    _shared_manager._ensure_initialized()
     return _shared_manager
+
+# 确保配置只初始化一次.
+# 内部顺序固定为 assets load -> config load -> config check -> assemble.
+func _ensure_initialized() -> void:
+    if _is_initialized or _is_initializing:
+        return
+
+    _is_initializing = true
+
+    # 第一阶段集中扫描 assets.
+    # 宠物和角色资源都在这里统一加载, 避免分散到各配置 load() 中隐式读取目录.
+    assets.load()
+
+    # 第二阶段读取配置源文件并建立各自的基础缓存.
+    # ConfigPet 和 ConfigCharacter 的 load() 都只解析 YAML, 后续在 assemble() 中挂载帧表.
+    pet.load()
+    character.load()
+    enemy_group.load()
+
+    # 第三阶段做校验.
+    # 这里资源索引和所有配置都已经完成 load, 可以做跨配置和配置到资源的检查.
+    pet.check()
+    character.check()
+    enemy_group.check(pet)
+
+    # 第四阶段做组装.
+    # 这里适合生成派生缓存或跨配置引用, 例如宠物技能槽位会引用同 ID 技能 Entry, 宠物和角色会挂载同 ID 帧表引用.
+    pet.assemble()
+    character.assemble()
+    enemy_group.assemble()
+
+    _is_initialized = true
+    _is_initializing = false
 
 # 统一 YAML 读取入口, 由各配置类按固定配置路径调用.
 # 这个函数不属于 Godot 自动生命周期, 只是普通静态工具函数.

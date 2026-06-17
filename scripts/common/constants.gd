@@ -23,6 +23,52 @@ const RECORD_DIR := "res://record"
 const RECORD_PATH := "res://record/account.yaml"
 const ELEMENT_KEYS := ["earth", "water", "fire", "wind"]
 
+# 元素身份统一使用 proto AssetElemental 枚举.
+# pet.yaml 和本地存档仍使用 earth/water/fire/wind 字符串, 只在配置和显示边界转换为枚举.
+const ELEMENT_ORDER := [
+    Proto.AssetElemental.AssetElemental_Earth,
+    Proto.AssetElemental.AssetElemental_Water,
+    Proto.AssetElemental.AssetElemental_Fire,
+    Proto.AssetElemental.AssetElemental_Wind,
+]
+const ELEMENT_KEY_BY_ENUM := {
+    Proto.AssetElemental.AssetElemental_Earth: "earth",
+    Proto.AssetElemental.AssetElemental_Water: "water",
+    Proto.AssetElemental.AssetElemental_Fire: "fire",
+    Proto.AssetElemental.AssetElemental_Wind: "wind",
+}
+const ELEMENT_ENUM_BY_KEY := {
+    "earth": Proto.AssetElemental.AssetElemental_Earth,
+    "water": Proto.AssetElemental.AssetElemental_Water,
+    "fire": Proto.AssetElemental.AssetElemental_Fire,
+    "wind": Proto.AssetElemental.AssetElemental_Wind,
+}
+const ELEMENT_LABEL_BY_ENUM := {
+    Proto.AssetElemental.AssetElemental_Earth: "地",
+    Proto.AssetElemental.AssetElemental_Water: "水",
+    Proto.AssetElemental.AssetElemental_Fire: "火",
+    Proto.AssetElemental.AssetElemental_Wind: "风",
+}
+
+# pet.yaml 顶层 attribute 段只允许这些默认倍率字段.
+# 字段名直接对应配置表和服务端协议命名, 不接受大小写变体或临时别名, 避免配置拼写错误被静默吞掉.
+const DEFAULT_RATE_ATTRIBUTE_KEYS := ["critRate", "counterRate", "dodgeRate", "hitRate", "critDamageBonusRate", "statusResistRate"]
+
+# 单个宠物 attribute 段允许的基础区间字段.
+# 倍率字段复用 DEFAULT_RATE_ATTRIBUTE_KEYS, 缺失时从顶层默认 attribute 段继承.
+const PET_BASE_ATTRIBUTE_KEYS := ["hp", "attack", "defense", "agility"]
+
+# 宠物动作帧表中的动作 key 到运行期枚举的映射.
+const PET_ACTION_BY_KEY := {
+    "attack": Proto.PetAction.PetAction_Attack,
+    "faint": Proto.PetAction.PetAction_Faint,
+    "hurt": Proto.PetAction.PetAction_Hurt,
+    "defense": Proto.PetAction.PetAction_Defense,
+    "stand": Proto.PetAction.PetAction_Stand,
+    "walk": Proto.PetAction.PetAction_Walk,
+    "attackShort": Proto.PetAction.PetAction_AttackShort,
+}
+
 # 宠物资源目录由 AssetsConfig, 宠物动画构建器和测试页共用.
 # 每个宠物仍使用同 ID 的 PNG 和 .tpsheet, 宠物每帧 offset 直接内联在 `.tpsheet` sprite 的 `offset: [x, y]` 字段中.
 # AssetsConfig 会根据宠物 ID 在 ASSET_PET_DIR 下查找 `{id}.png` 和 `{id}.tpsheet`.

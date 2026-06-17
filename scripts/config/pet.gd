@@ -5,41 +5,6 @@ extends RefCounted
 # 这个类使用 MiniYAML 解析 YAML, 并同时加载 skill, attribute 和 pet 三段数据.
 # pet 段会被转换为 Entry, 调用方通过 get_by_id(id) 取得结构化字段, 不需要再手动从 Dictionary 里猜 key.
 
-# pet.yaml 中使用的元素 key.
-# 这些字符串只属于宠物配置解析协议, 解析和校验完成后不会作为公共常量向业务层扩散.
-const ELEMENT_KEYS := ["earth", "water", "fire", "wind"]
-
-# pet.yaml 顶层 attribute 段只允许这些默认倍率字段.
-# 字段名直接对应配置表和服务端协议命名, 不接受大小写变体或临时别名, 避免配置拼写错误被静默吞掉.
-const DEFAULT_RATE_ATTRIBUTE_KEYS := ["critRate", "counterRate", "dodgeRate", "hitRate", "critDamageBonusRate", "statusResistRate"]
-
-# 单个宠物 attribute 段允许的基础区间字段.
-# 倍率字段复用 DEFAULT_RATE_ATTRIBUTE_KEYS, 缺失时从顶层默认 attribute 段继承.
-const PET_BASE_ATTRIBUTE_KEYS := ["hp", "attack", "defense", "agility"]
-
-# pet.yaml sprite 字段中的方向 key 到运行期枚举的映射.
-const DIRECTION_BY_KEY := {
-    "up": Constants.Direction.Up,
-    "upright": Constants.Direction.UpRight,
-    "right": Constants.Direction.Right,
-    "downright": Constants.Direction.DownRight,
-    "down": Constants.Direction.Down,
-    "downleft": Constants.Direction.DownLeft,
-    "left": Constants.Direction.Left,
-    "upleft": Constants.Direction.UpLeft,
-}
-
-# 宠物动作帧表中的动作 key 到运行期枚举的映射.
-const PET_ACTION_BY_KEY := {
-    "attack": Constants.PetAction.Attack,
-    "faint": Constants.PetAction.Faint,
-    "hurt": Constants.PetAction.Hurt,
-    "defense": Constants.PetAction.Defense,
-    "stand": Constants.PetAction.Stand,
-    "walk": Constants.PetAction.Walk,
-    "attackShort": Constants.PetAction.AttackShort,
-}
-
 # 单个宠物技能配置条目.
 # 当前业务主要读取技能槽位 ID, 但保留完整技能名称和描述, 方便后续 UI 或战斗逻辑直接按 ID 查询.
 class SkillEntry extends RefCounted:
@@ -62,7 +27,7 @@ class Entry extends RefCounted:
     var id: int
     var name: String
     var rarity: int
-    # Array[int] 固定按 earth, water, fire, wind 顺序保存元素点数, 方便运行期按下标直接读取.
+    # Array[int] 固定按 Constants.ELEMENT_ORDER 的 proto 元素枚举顺序保存元素点数, 方便运行期按下标直接读取.
     var elemental: Array[int] = []
     var hp_range: Vector2i
     var attack_range: Vector2i
@@ -84,7 +49,7 @@ class Entry extends RefCounted:
     var level1_spawn: String
     var description: String
     # Vector2i(direction, action) -> PlayInfo.
-    # Vector2i.x 是 Constants.Direction 枚举值, Vector2i.y 是 Constants.PetAction 枚举值.
+    # Vector2i.x 是 proto AssetDirection 枚举值, Vector2i.y 是 proto PetAction 枚举值.
     # 宠物资源要求每个方向和动作组合都存在, 因此播放缓存可直接定位帧号表.
     var direction_action_frames: Dictionary[Vector2i, PlayInfo] = {}
     # frame_id -> TexturePackerFrame.
@@ -114,7 +79,7 @@ var _by_id: Dictionary[int, Entry] = {}
 
 # 配置管理流程的第一步.
 # 读取 YAML 并建立技能, 默认属性和宠物 ID 索引.
-# 资源帧表已由 ConfigAssets 统一加载; 本函数只解析 YAML 字段和方向, 动作到帧号序列的关系.
+# 资源帧表已由 AssetsConfig 统一加载; 本函数只解析 YAML 字段和方向, 动作到帧号序列的关系.
 func load() -> void:
     var config_data := ConfigManager.load_yaml(Constants.CONFIG_PET_PATH)
 
@@ -149,11 +114,11 @@ func load() -> void:
         assert(attribute_row_data.size() == 1, "宠物默认属性条目必须只包含一个字段: %s row:%s" % [Constants.CONFIG_PET_PATH, str(attribute_row_data)])
         for raw_attribute_key in attribute_row_data:
             var attribute_key := str(raw_attribute_key)
-            assert(DEFAULT_RATE_ATTRIBUTE_KEYS.has(attribute_key), "宠物默认属性字段未知: %s key:%s" % [Constants.CONFIG_PET_PATH, attribute_key])
+            assert(Constants.DEFAULT_RATE_ATTRIBUTE_KEYS.has(attribute_key), "宠物默认属性字段未知: %s key:%s" % [Constants.CONFIG_PET_PATH, attribute_key])
             assert(not _default_attributes.has(attribute_key), "宠物默认属性字段重复: %s key:%s" % [Constants.CONFIG_PET_PATH, attribute_key])
             var attribute_value = attribute_row_data[raw_attribute_key]
             _default_attributes[attribute_key] = _parse_rate_value(attribute_value, "宠物默认属性值非法: %s key:%s" % [Constants.CONFIG_PET_PATH, attribute_key])
-    for required_attribute_key in DEFAULT_RATE_ATTRIBUTE_KEYS:
+    for required_attribute_key in Constants.DEFAULT_RATE_ATTRIBUTE_KEYS:
         assert(_default_attributes.has(required_attribute_key), "宠物默认属性字段缺失: %s key:%s" % [Constants.CONFIG_PET_PATH, required_attribute_key])
 
     # pet 段是主数据.
@@ -176,19 +141,20 @@ func load() -> void:
         assert(not entry.name.is_empty(), "宠物名称为空: ID:%d" % entry.id)
 
         entry.rarity = int(pet_data.get("rarity", 0))
-        assert(entry.rarity >= Constants.RARITY_MIN and entry.rarity <= Constants.RARITY_MAX, "宠物稀有度非法: ID:%d rarity:%d" % [entry.id, entry.rarity])
+        assert(entry.rarity >= GPB.PetRarity.PetRarity_Common and entry.rarity <= GPB.PetRarity.PetRarity_Mythic, "宠物稀有度非法: ID:%d rarity:%d" % [entry.id, entry.rarity])
 
         # pet.yaml 中 elemental 仍使用 earth/water/fire/wind 对象表达.
-        # 读取后转换为固定顺序数组, 让运行期结构更紧凑, 且仍保留配置 key 的合法性校验.
+        # 读取时先转换为 proto AssetElemental, 再按 Constants.ELEMENT_ORDER 写入固定顺序数组.
         var elemental_value = pet_data.get("elemental", {})
         assert(elemental_value is Dictionary, "宠物 elemental 须为对象: ID:%d" % entry.id)
         var elemental_data := elemental_value as Dictionary
-        for _elemental_index in range(ELEMENT_KEYS.size()):
+        for _elemental_index in range(Constants.ELEMENT_ORDER.size()):
             entry.elemental.append(0)
         for raw_elemental_key in elemental_data.keys():
             var elemental_key := str(raw_elemental_key)
-            assert(ELEMENT_KEYS.has(elemental_key), "宠物 elemental 元素未知: ID:%d key:%s" % [entry.id, elemental_key])
-            entry.elemental[ELEMENT_KEYS.find(elemental_key)] = int(elemental_data[raw_elemental_key])
+            var elemental_enum := elemental_from_key(elemental_key)
+            assert(elemental_enum != GPB.AssetElemental.AssetElemental_Unknow, "宠物 elemental 元素未知: ID:%d key:%s" % [entry.id, elemental_key])
+            entry.elemental[Constants.ELEMENT_ORDER.find(elemental_enum)] = int(elemental_data[raw_elemental_key])
         _check_elemental(entry)
 
         assert(pet_data.has("attribute"), "宠物 attribute 缺失: ID:%d" % entry.id)
@@ -248,7 +214,7 @@ func load() -> void:
         var action_frame_dict := raw_action_frames as Dictionary
         for direction_key in action_frame_dict.keys():
             var direction := _direction_from_key(str(direction_key))
-            assert(direction != Constants.Direction.Unknown, "宠物动作帧表方向未知: pet:%d direction:%s" % [entry.id, str(direction_key)])
+            assert(direction != GPB.AssetDirection.AssetDirection_Unknow, "宠物动作帧表方向未知: pet:%d direction:%s" % [entry.id, str(direction_key)])
 
             var direction_data = action_frame_dict[direction_key]
             assert(direction_data is Dictionary, "宠物动作帧表方向配置须为对象: pet:%d direction:%s" % [entry.id, str(direction_key)])
@@ -256,7 +222,7 @@ func load() -> void:
             var action_dict := direction_data as Dictionary
             for action_key in action_dict.keys():
                 var action := _pet_action_from_key(str(action_key))
-                assert(action != Constants.PetAction.Unknown, "宠物动作帧表动作未知: pet:%d direction:%s action:%s" % [entry.id, str(direction_key), str(action_key)])
+                assert(action != GPB.PetAction.PetAction_Unknow, "宠物动作帧表动作未知: pet:%d direction:%s action:%s" % [entry.id, str(direction_key), str(action_key)])
 
                 var frame_ids = action_dict[action_key]
                 assert(frame_ids is Array, "宠物动作帧表动作配置须为帧号数组: pet:%d direction:%s action:%s" % [entry.id, str(direction_key), str(action_key)])
@@ -288,11 +254,11 @@ func check() -> void:
     pass
 
 # 配置管理流程的第三步.
-# 资源扫描已经由 ConfigAssets 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
+# 资源扫描已经由 AssetsConfig 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
 func assemble() -> void:
     for pet_id in _by_id.keys():
         var pet := _by_id[pet_id] as Entry
-        var frame_table := ConfigManager.get_shared().assets.pet_frame_table_by_id.get(int(pet_id), null) as ConfigAssets.FrameTable
+        var frame_table := ConfigManager.get_shared().assets.pet_frame_table_by_id.get(int(pet_id), null) as AssetsConfig.FrameTable
         assert(frame_table != null, "宠物缺少同 ID 可播放资源: pet:%d" % int(pet_id))
         pet.frame_by_id = frame_table.frame_by_id
 
@@ -308,16 +274,16 @@ func assemble() -> void:
                 assert(pet.frame_by_id.has(int(frame_id)), "宠物动作帧表引用了不存在的可播放帧: pet:%d direction:%s action:%s frame:%d" % [int(pet_id), direction_key, action_key, int(frame_id)])
 
 # 校验宠物元素配置.
-# Entry.elemental 是固定长度数组, 下标顺序对应 ELEMENT_KEYS: earth, water, fire, wind.
+# Entry.elemental 是固定长度数组, 下标顺序对应 Constants.ELEMENT_ORDER 中的 proto AssetElemental 枚举.
 # 有效配置必须满足: 每个元素是 [0, 10] 的整数, 总和为 10, 且正值元素只能是 1 个或 2 个相邻元素.
 func _check_elemental(entry: Entry) -> void:
-    assert(entry.elemental.size() == ELEMENT_KEYS.size(), "宠物 elemental 数组长度非法: ID:%d size:%d" % [entry.id, entry.elemental.size()])
+    assert(entry.elemental.size() == Constants.ELEMENT_ORDER.size(), "宠物 elemental 数组长度非法: ID:%d size:%d" % [entry.id, entry.elemental.size()])
 
     var elemental_sum := 0
     var active_indexes: Array[int] = []
 
-    for elemental_index in range(ELEMENT_KEYS.size()):
-        var elemental_key := str(ELEMENT_KEYS[elemental_index])
+    for elemental_index in range(Constants.ELEMENT_ORDER.size()):
+        var elemental_key := get_elemental_key(int(Constants.ELEMENT_ORDER[elemental_index]))
         var raw_value = entry.elemental[elemental_index]
         assert(raw_value is int, "宠物 elemental 值必须为整数: ID:%d key:%s value:%s" % [entry.id, elemental_key, str(raw_value)])
 
@@ -332,40 +298,49 @@ func _check_elemental(entry: Entry) -> void:
 
     var active_keys: Array[String] = []
     for active_index in active_indexes:
-        active_keys.append(str(ELEMENT_KEYS[int(active_index)]))
+        active_keys.append(get_elemental_key(int(Constants.ELEMENT_ORDER[int(active_index)])))
 
     var active_count := active_indexes.size()
     assert(active_count == 1 or active_count == 2, "宠物 elemental 只能是单元素或两个相邻元素: ID:%d active:%s" % [entry.id, str(active_keys)])
     if active_count == 2:
         var distance: int = absi(int(active_indexes[0]) - int(active_indexes[1]))
-        var wrap_distance: int = ELEMENT_KEYS.size() - 1
+        var wrap_distance: int = Constants.ELEMENT_ORDER.size() - 1
         var is_adjacent: bool = distance == 1 or distance == wrap_distance
         assert(is_adjacent, "宠物 elemental 两个元素必须相邻: ID:%d active:%s" % [entry.id, str(active_keys)])
+
+static func elemental_from_key(key: String) -> int:
+    return int(Constants.ELEMENT_ENUM_BY_KEY.get(key, GPB.AssetElemental.AssetElemental_Unknow))
+
+static func get_elemental_key(elemental: int) -> String:
+    return str(Constants.ELEMENT_KEY_BY_ENUM.get(elemental, str(elemental)))
+
+static func get_elemental_label(elemental: int) -> String:
+    return str(Constants.ELEMENT_LABEL_BY_ENUM.get(elemental, get_elemental_key(elemental)))
 
 # 校验单个宠物 attribute 段字段名.
 # 基础区间字段必须显式配置; 倍率字段允许省略并继承顶层默认 attribute, 但不允许出现配置表之外的临时字段.
 func _check_pet_attribute_keys(attribute_data: Dictionary, pet_id: int) -> void:
     for raw_attribute_key in attribute_data.keys():
         var attribute_key := str(raw_attribute_key)
-        assert(PET_BASE_ATTRIBUTE_KEYS.has(attribute_key) or DEFAULT_RATE_ATTRIBUTE_KEYS.has(attribute_key), "宠物 attribute 字段未知: ID:%d key:%s" % [pet_id, attribute_key])
-    for required_attribute_key in PET_BASE_ATTRIBUTE_KEYS:
+        assert(Constants.PET_BASE_ATTRIBUTE_KEYS.has(attribute_key) or Constants.DEFAULT_RATE_ATTRIBUTE_KEYS.has(attribute_key), "宠物 attribute 字段未知: ID:%d key:%s" % [pet_id, attribute_key])
+    for required_attribute_key in Constants.PET_BASE_ATTRIBUTE_KEYS:
         assert(attribute_data.has(required_attribute_key), "宠物 attribute 基础字段缺失: ID:%d key:%s" % [pet_id, required_attribute_key])
 
 func _direction_from_key(key: String) -> int:
-    return int(DIRECTION_BY_KEY.get(key, Constants.Direction.Unknown))
+    return int(Constants.DIRECTION_BY_KEY.get(key, GPB.AssetDirection.AssetDirection_Unknow))
 
 func _direction_to_key(direction: int) -> String:
-    for key in DIRECTION_BY_KEY.keys():
-        if int(DIRECTION_BY_KEY[key]) == direction:
+    for key in Constants.DIRECTION_BY_KEY.keys():
+        if int(Constants.DIRECTION_BY_KEY[key]) == direction:
             return str(key)
     return str(direction)
 
 func _pet_action_from_key(key: String) -> int:
-    return int(PET_ACTION_BY_KEY.get(key, Constants.PetAction.Unknown))
+    return int(Constants.PET_ACTION_BY_KEY.get(key, GPB.PetAction.PetAction_Unknow))
 
 func _pet_action_to_key(action: int) -> String:
-    for key in PET_ACTION_BY_KEY.keys():
-        if int(PET_ACTION_BY_KEY[key]) == action:
+    for key in Constants.PET_ACTION_BY_KEY.keys():
+        if int(Constants.PET_ACTION_BY_KEY[key]) == action:
             return str(key)
     return str(action)
 
