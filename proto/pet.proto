@@ -15,7 +15,7 @@ enum PetAction {
   PetAction_Defense = 4; // 防御
   PetAction_Stand = 5; // 站立
   PetAction_Walk = 6; // 行走
-  AttackShort = 7; // 短攻击
+  PetAction_AttackShort = 7; // 短攻击
   PetAction_Max = 8; // 动作最大值
 }
 

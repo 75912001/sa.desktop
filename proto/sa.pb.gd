@@ -1464,7 +1464,7 @@ enum PetAction {
 	PetAction_Defense = 4,
 	PetAction_Stand = 5,
 	PetAction_Walk = 6,
-	AttackShort = 7,
+	PetAction_AttackShort = 7,
 	PetAction_Max = 8
 }
 
