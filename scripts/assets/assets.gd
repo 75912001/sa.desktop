@@ -1,4 +1,4 @@
-class_name ConfigAssets
+class_name AssetsConfig
 extends RefCounted
 
 # 统一扫描 assets 目录中的动画资源.
