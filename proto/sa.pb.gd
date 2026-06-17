@@ -1,3 +1,5 @@
+extends Node
+
 #
 # BSD 3-Clause License
 #

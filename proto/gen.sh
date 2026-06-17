@@ -167,11 +167,31 @@ run_godobuf() {
 		--output="res://$OUTPUT_FILE"
 }
 
+# Godobuf 生成的协议脚本默认不是 Node, 不能直接作为 Autoload.
+# 项目业务需要通过 GPB 全局入口访问协议类型, 所以生成后给文件首行补上 `extends Node`.
+ensure_autoload_base() {
+	require_file "$OUTPUT_FILE"
+	local first_line
+	first_line="$(sed -n '1p' "$OUTPUT_FILE")"
+	if [ "$first_line" = "extends Node" ]; then
+		return
+	fi
+
+	local output_tmp
+	output_tmp="$(mktemp)"
+	{
+		printf '%s\n\n' "extends Node"
+		cat "$OUTPUT_FILE"
+	} > "$output_tmp"
+	mv "$output_tmp" "$OUTPUT_FILE"
+}
+
 # 检查生成结果是否真实存在, 并清理 Godot 可能为生成脚本产物创建的 .uid 文件。
 # 协议生成结果只需要提交 sa.pb.gd, 不需要把资源 UID 缓存作为协议产物维护。
 check_output() {
 	require_file "$OUTPUT_FILE"
 	[ -s "$OUTPUT_FILE" ] || error "生成文件为空: $OUTPUT_FILE"
+	ensure_autoload_base
 	rm -f "$OUTPUT_FILE.uid"
 }
 
