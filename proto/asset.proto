@@ -101,6 +101,16 @@ enum AssetIDRecord {
   AssetIDRecord_Pet_AttributesHP_InitialStats = 2105; // 宠物属性-生命-初始属性
 }
 
+// 资产元素属性
+enum AssetElemental {
+  AssetElemental_Unknow = 0; // 未知元素
+  AssetElemental_Earth = 1; // 土
+  AssetElemental_Water = 2; // 水
+  AssetElemental_Fire = 3; // 火
+  AssetElemental_Wind = 4; // 风
+  AssetElemental_Max = 5; // 元素最大值
+}
+
 // 资产方向
 enum AssetDirection {
   AssetDirection_Unknow = 0; // 未知方向

@@ -1820,6 +1820,15 @@ enum AssetIDRecord {
 	AssetIDRecord_Pet_AttributesHP_InitialStats = 2105
 }
 
+enum AssetElemental {
+	AssetElemental_Unknow = 0,
+	AssetElemental_Earth = 1,
+	AssetElemental_Water = 2,
+	AssetElemental_Fire = 3,
+	AssetElemental_Wind = 4,
+	AssetElemental_Max = 5
+}
+
 enum AssetDirection {
 	AssetDirection_Unknow = 0,
 	AssetDirection_Up = 1,
