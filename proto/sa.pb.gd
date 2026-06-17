@@ -1,4 +1,5 @@
-class PB extends RefCounted
+class_name PB
+extends RefCounted
 
 #
 # BSD 3-Clause License

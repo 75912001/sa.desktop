@@ -167,20 +167,20 @@ run_godobuf() {
 		--output="res://$OUTPUT_FILE"
 }
 
-# Godobuf 生成的协议脚本默认没有项目约定的 PB 外层类型.
-# 项目业务通过 GPB 全局入口访问协议类型, 所以生成后给文件首行补上 `class PB extends RefCounted`.
+# Godobuf 生成的协议脚本默认没有项目约定的 PB 全局脚本类型.
+# 项目业务通过 GPB 全局入口访问协议类型, 所以生成后给文件头补上合法的 Godot 顶层脚本声明.
 ensure_autoload_base() {
 	require_file "$OUTPUT_FILE"
 	local first_line
 	first_line="$(sed -n '1p' "$OUTPUT_FILE")"
-	if [ "$first_line" = "class PB extends RefCounted" ]; then
+	if [ "$first_line" = "class_name PB" ]; then
 		return
 	fi
 
 	local output_tmp
 	output_tmp="$(mktemp)"
 	{
-		printf '%s\n\n' "class PB extends RefCounted"
+		printf '%s\n%s\n\n' "class_name PB" "extends RefCounted"
 		cat "$OUTPUT_FILE"
 	} > "$output_tmp"
 	mv "$output_tmp" "$OUTPUT_FILE"
