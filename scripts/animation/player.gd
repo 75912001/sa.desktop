@@ -7,11 +7,6 @@ extends Node2D
 # 这个脚本继承 Node2D, 因为它需要通过 `_draw()` 直接把图集中的局部区域绘制到 2D 坐标系里.
 # 外部调用方可以移动, 缩放或设置 z_index 来控制整个动画节点, 但不应该在这里混入宠物或角色业务判断.
 
-# 辅助线颜色只在 `guides_visible` 打开时绘制.
-# anchor_row 表示锚点所在横线, anchor_column 表示锚点所在竖线, frame 表示当前图集裁剪矩形.
-const GUIDE_ANCHOR_ROW_COLOR := Color(0.2, 0.95, 0.35, 0.9)
-const GUIDE_ANCHOR_COLUMN_COLOR := Color(1.0, 0.35, 0.25, 0.95)
-const GUIDE_FRAME_COLOR := Color(0.35, 0.65, 1.0, 0.8)
 # 当前播放器只保存播放所需引用, 不持有宠物或角色业务配置对象.
 # atlas 是整张 PNG 图集, `_draw()` 会从这张图里裁剪当前帧的 region.
 var atlas: Texture2D
@@ -151,9 +146,9 @@ func _draw() -> void:
     if guides_visible:
         # 辅助线使用当前播放器局部坐标:
         # 横线和竖线穿过本节点原点, 小十字用于快速定位动画锚点.
-        draw_line(Vector2(frame_rect.position.x, 0.0), Vector2(frame_rect.end.x, 0.0), GUIDE_ANCHOR_ROW_COLOR, 1.0)
-        draw_line(Vector2(0.0, frame_rect.position.y), Vector2(0.0, frame_rect.end.y), GUIDE_ANCHOR_COLUMN_COLOR, 1.0)
-        draw_line(Vector2(-5.0, 0.0), Vector2(5.0, 0.0), GUIDE_ANCHOR_COLUMN_COLOR, 10.0)
-        draw_line(Vector2(0.0, -5.0), Vector2(0.0, 5.0), GUIDE_ANCHOR_COLUMN_COLOR, 10.0)
+        draw_line(Vector2(frame_rect.position.x, 0.0), Vector2(frame_rect.end.x, 0.0), Constants.GUIDE_ANCHOR_ROW_COLOR, 1.0)
+        draw_line(Vector2(0.0, frame_rect.position.y), Vector2(0.0, frame_rect.end.y), Constants.GUIDE_ANCHOR_COLUMN_COLOR, 1.0)
+        draw_line(Vector2(-5.0, 0.0), Vector2(5.0, 0.0), Constants.GUIDE_ANCHOR_COLUMN_COLOR, 10.0)
+        draw_line(Vector2(0.0, -5.0), Vector2(0.0, 5.0), Constants.GUIDE_ANCHOR_COLUMN_COLOR, 10.0)
         # 当前帧矩形能直观看到图集裁剪尺寸和锚点位置是否符合预期.
-        draw_rect(frame_rect, GUIDE_FRAME_COLOR, false, 1.0)
+        draw_rect(frame_rect, Constants.GUIDE_FRAME_COLOR, false, 1.0)

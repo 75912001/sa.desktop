@@ -10,16 +10,16 @@ extends FramePlayer
 # target_anchor_position 使用父节点或窗口内容坐标系, 表示宠物锚点要落到的位置.
 func play_pet(pet_id: int, direction: int, action: int, target_anchor_position: Vector2) -> bool:
     # 宠物播放器只接受宠物动作枚举. Unknown 表示调用方传入了未解析或不支持的动作.
-    if direction == Constants.Direction.Unknown:
+    if direction == GPB.AssetDirection.AssetDirection_Unknow:
         push_error("宠物动画显示方向未知: pet=%d direction=%d" % [pet_id, direction])
         return false
-    if action == Constants.PetAction.Unknown:
+    if action == GPB.PetAction.PetAction_Unknow:
         push_error("宠物动画动作未知: pet=%d action=%d" % [pet_id, action])
         return false
 
-    # GGameData.pet_config 已在主场景前由 ConfigManager 初始化.
+    # GCfgMgr.pet_config 已在主场景前由 ConfigManager 初始化.
     # get_by_id() 会按需懒加载 atlas, 播放器拿到 Entry 后不再关心资源路径.
-    var entry := GGameData.pet_config.get_by_id(pet_id)
+    var entry := GCfgMgr.pet.get_by_id(pet_id)
     if entry == null:
         push_error("宠物配置不存在: pet=%d" % pet_id)
         return false
@@ -30,7 +30,7 @@ func play_pet(pet_id: int, direction: int, action: int, target_anchor_position: 
     # play_pet 面向战斗等普通显示场景. FramePlayer 的局部原点就是动画锚点,
     # 所以节点 position 直接等于父坐标中的目标锚点.
     var play_speed := Constants.ANIMATION_DEFAULT_SPEED
-    if action == Constants.PetAction.Walk:
+    if action == GPB.PetAction.PetAction_Walk:
         play_speed = Constants.ANIMATION_WALK_SPEED
     play(
         entry.atlas, 

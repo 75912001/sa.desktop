@@ -10,19 +10,19 @@ extends FramePlayer
 # target_anchor_position 使用父节点或窗口内容坐标系, 表示角色锚点要落到的位置.
 func play_character(character_id: int, weapon: int, direction: int, action: int, target_anchor_position: Vector2) -> bool:
     # 角色显示必须同时具备方向, 武器和动作. 任意 Unknown 都表示调用方边界转换失败.
-    if direction == Constants.Direction.Unknown:
+    if direction == GPB.AssetDirection.AssetDirection_Unknow:
         push_error("角色动画显示方向未知: character=%d direction=%d" % [character_id, direction])
         return false
-    if weapon == Constants.WeaponType.Unknown:
+    if weapon == GPB.CharacterWeaponType.CharacterWeaponType_Unknow:
         push_error("角色武器类型未知: character=%d weapon=%d" % [character_id, weapon])
         return false
-    if action == Constants.CharacterAction.Unknown:
+    if action == GPB.CharacterAction.CharacterAction_Unknow:
         push_error("角色动画动作未知: character=%d action=%d" % [character_id, action])
         return false
 
     # ConfigCharacter.Entry 保存角色级共享 atlas/frame_by_id 和结构化动作帧表.
     # get_by_id() 负责按需懒加载图集, 播放器只消费已经组装好的 Entry.
-    var entry := GGameData.character_config.get_by_id(character_id)
+    var entry := GCfgMgr.character.get_by_id(character_id)
     if entry == null:
         push_error("角色配置不存在: character=%d" % character_id)
         return false
