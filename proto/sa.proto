@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "saClient/proto";
+
+import "account.proto";
+import "asset.proto";
+import "combat.proto";
+import "common.proto";
+import "equipment.proto";
+import "weapon.proto";
