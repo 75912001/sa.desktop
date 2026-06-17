@@ -1,4 +1,4 @@
-extends RefCounted
+extends Node
 
 # GRecord 是运行期 AccountRecord 的全局入口.
 # 它不再读取或写入本地记录文件; 登录时直接创建一份内存记录, 后续页面只消费这份记录.

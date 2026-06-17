@@ -18,9 +18,20 @@ const CONFIG_PET_PATH := "res://config/pet.yaml"
 const CONFIG_CHARACTER_PATH := "res://config/character.yaml"
 const CONFIG_ENEMY_GROUP_PATH := "res://config/enemy.group.yaml"
 
-# 账号记录 YAML 路径和元素字段顺序由 GRecord 读写复用.
-const RECORD_DIR := "res://record"
-const RECORD_PATH := "res://record/account.yaml"
+# 主窗口业务页面路径由 GWindow 和 GTray 复用.
+# 页面切换只替换 Window/ContentRoot 下的子场景, 不调用全局 change_scene_to_file().
+const GAME_SCENE := "res://scenes/game.tscn"
+const BATTLE_SCENE := "res://scenes/battle.tscn"
+
+# 当前主窗口作为游戏和战斗共用的窗口, 统一使用 800x600.
+const WINDOW_SIZE := Vector2i(800, 600)
+
+# 调试红边只用于测试透明窗口边界.
+# 它画在 Window 根节点上, 不创建 Control 节点, 因此不会拦截游戏页的鼠标输入.
+const DEBUG_BORDER_COLOR := Color(1, 0, 0, 1)
+const DEBUG_BORDER_WIDTH := 2.0
+
+# 角色元素字段顺序由 GRecord 生成运行期记录时复用.
 const ELEMENT_KEYS := ["earth", "water", "fire", "wind"]
 
 # 元素身份统一使用 proto AssetElemental 枚举.
