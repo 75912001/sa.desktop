@@ -18,7 +18,7 @@ GODOT_BIN="${GODOT_BIN:-}"
 # 协议入口文件。Godobuf 会从这个 proto 文件开始解析并生成 GDScript 协议代码。
 PROTO_ENTRY="proto/sa.proto"
 # 生成代码输出目录。这里要求目录已存在, 脚本不会自动创建, 以便暴露目录结构问题。
-OUTPUT_DIR="scripts/proto"
+OUTPUT_DIR="proto"
 # 最终生成的 GDScript 协议文件。
 OUTPUT_FILE="$OUTPUT_DIR/sa.pb.gd"
 # Godobuf 的命令行脚本。Godot 会通过 --script 运行它来执行 proto 到 gd 的转换。

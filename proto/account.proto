@@ -8,5 +8,6 @@ import "character.proto";
 
 // 账号记录
 message AccountRecord {
+  uint64 UsedUUID = 1; // 已使用的UUID,根据UsedUUID生成新的UUID 规则: 默认为0,每次生成新的UUID时 UsedUUID+1
   map<uint64, CharacterRecord> CharacterRecordMap = 10; // 角色记录表 key: 角色UUID
 }
