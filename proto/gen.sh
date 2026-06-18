@@ -180,7 +180,7 @@ ensure_autoload_base() {
 	local output_tmp
 	output_tmp="$(mktemp)"
 	{
-		printf '%s\n%s\n\n' "class_name PB" "extends RefCounted"
+		printf '%s\n%s\n\n' "class_name PB" "extends Node"
 		cat "$OUTPUT_FILE"
 	} > "$output_tmp"
 	mv "$output_tmp" "$OUTPUT_FILE"

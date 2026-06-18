@@ -1,5 +1,5 @@
 class_name PB
-extends RefCounted
+extends Node
 
 #
 # BSD 3-Clause License
