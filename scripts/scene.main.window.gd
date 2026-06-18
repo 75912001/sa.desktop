@@ -1,27 +1,24 @@
 class_name MainWindow
 extends Node2D
 
-# MainWindow 是项目唯一主场景, 负责真实主窗口外壳、绘制、输入和 ContentRoot 页面切换.
-# 它持有同一个 Godot 主窗口、一个 ContentRoot 和一个 WindowController,
-# 页面切换时只替换 ContentRoot 的子节点,
-# 不调用 change_scene_to_file(), 这样 Autoload 和窗口实例都不会被页面释放影响.
-
-# `@onready` 表示等节点进入场景树以后再取子节点.
-# 因为 `$ContentRoot` 是 scenes/main.window.tscn 里的子节点, 如果在脚本刚加载时就读取,
-# 子节点还没准备好; 用 @onready 可以等 Godot 完成节点创建.
-
-# ContentRoot 是业务页面的挂载点.
-# 游戏页会作为它的子节点显示.
-@onready var content_root: Node2D = get_node_or_null("ContentRoot") as Node2D
+# MainWindow 是 scenes/main.window.tscn 的根节点脚本, 只管理同一个 Godot 主窗口.
+# 它负责透明无边框窗口外壳、调试边框、空白区域拖拽、ContentRoot 页面挂载、
+# 运行时 WindowController helper 的生命周期, 把真实主窗口实例注册到 GMainWindow,
+# 再触发 GTray 初始化托盘流程.
+# 页面切换只替换 ContentRoot 的子节点, 不调用 change_scene_to_file(),
+# 因此 Autoload、系统托盘和真实 OS 窗口不会被业务页面释放影响.
 
 # 当前挂载在 ContentRoot 下的业务页面实例.
-# switch_scene() 会先移除并释放旧页面, 再实例化新页面; clear_scene() 会把它恢复为 null.
-# 这里保存 Node 而不是 PackedScene, 是因为后续需要读取当前页面的 scene_file_path.
+# 这里只保存运行时实例, 不保存 PackedScene; clear_scene() 会把旧实例从 ContentRoot 移除并释放.
 var current_scene: Node = null
+
+# ContentRoot 是 main.window.tscn 里的业务页面挂载点.
+# @onready 会等 MainWindow 和子节点都进入场景树后再取节点, 避免脚本加载阶段访问不存在的子节点.
+@onready var content_root: Node2D = get_node_or_null("ContentRoot") as Node2D
 
 # MainWindow 内部创建并持有的窗口行为控制器.
 # WindowController 不作为 Autoload 暴露, 由 MainWindow 统一封装拖拽、缩放、透明度、鼠标穿透和窗口显隐行为.
-# helper 挂到 MainWindow 生命周期下; 页面切换只替换 ContentRoot 子节点, 不会释放这个控制器.
+# 它是运行时 helper 节点, 会挂到 MainWindow 生命周期下, 所以 Godot IDE 的静态场景树里不会显示它.
 var window_controller: WindowController = null
 
 # `_ready()` 是 Godot 的生命周期函数.
@@ -29,16 +26,14 @@ var window_controller: WindowController = null
 # 这里的启动顺序很重要:
 # 1. 校验 ContentRoot, 防止主场景结构变化后继续执行外部窗口副作用.
 # 2. 创建窗口控制器并配置主窗口, 保证透明、无边框和尺寸正确.
-# 3. 再把 MainWindow 和 WindowController 交给 GTray, 让托盘能触发页面切换和窗口行为.
+# 3. 注册 GMainWindow.main_window, GTray 再从全局入口读取主窗口和窗口控制器.
 # 4. 不自动加载业务页. 未登录时 ContentRoot 保持为空, 账号登录从托盘选项窗口进入.
 func _ready() -> void:
-    if content_root == null:
-        push_error("MainWindow 缺少 ContentRoot, 无法初始化主窗口.")
-        return
-
+    assert(content_root != null, "MainWindow 缺少 ContentRoot, 无法初始化主窗口.")
+    GMainWindow.main_window = self
     _ensure_window_controller()
     _configure_window()
-    GTray.initialize(self)
+    GTray.initialize()
 
 # 清空当前业务页面.
 # 未登录启动和从战斗返回到空内容都会用到它.
@@ -50,39 +45,18 @@ func clear_scene() -> void:
     current_scene = null
 
 # 切换窗口中的业务内容.
-# 旧页面先从 ContentRoot 移除再 queue_free(), 避免下一页 ready 时两页同时响应输入.
+# 这里先加载新场景, 加载成功后再释放旧页面; 如果路径错误, 当前页面会保留, 方便暴露错误且避免黑屏.
+# 新页面只作为 ContentRoot 子节点加入当前窗口, 不调用子场景的可选 initialize() 约定.
+# 需要页面初始化参数时, 优先设计明确的页面脚本 API, 不在 MainWindow 里用动态方法名隐式分发.
 func switch_scene(scene_path: String) -> void:
-    if content_root == null or not is_instance_valid(content_root):
-        push_error("MainWindow 缺少有效 ContentRoot, 无法切换场景.")
-        return
+    var packed_scene: PackedScene = load(scene_path) as PackedScene
+    assert(packed_scene != null, "无法加载场景: %s" % scene_path)
 
-    if scene_path.is_empty():
-        clear_scene()
-        return
-
-    if current_scene != null and is_instance_valid(current_scene):
-        content_root.remove_child(current_scene)
-        current_scene.queue_free()
-        current_scene = null
-
-    var packed_scene := load(scene_path) as PackedScene
-    if packed_scene == null:
-        push_error("无法加载场景: %s" % scene_path)
-        return
+    clear_scene()
 
     current_scene = packed_scene.instantiate()
-    if current_scene.has_method("initialize"):
-        current_scene.call("initialize", self)
     content_root.add_child(current_scene)
-    _prepare_scene_input_routing(current_scene)
-
-# 返回当前业务页面资源路径.
-# 空内容或无效节点返回空字符串.
-func get_current_scene_path() -> String:
-    if current_scene == null or not is_instance_valid(current_scene):
-        return ""
-
-    return current_scene.scene_file_path
+    _set_passive_controls_to_pass(current_scene)
 
 # Node2D 的 `_draw()` 只负责绘制调试线框.
 # 这里不使用额外 UI 节点, 是为了让红边纯粹作为视觉提示, 不参与鼠标命中和输入分发.
@@ -90,10 +64,10 @@ func _draw() -> void:
     if not GTray.get_window_debug_border_enabled():
         return
 
-    var half_width := Constants.DEBUG_BORDER_WIDTH * 0.5
-    var current_window_size := DisplayServer.window_get_size()
-    var window_size := Vector2(float(current_window_size.x), float(current_window_size.y))
-    var border_rect := Rect2(
+    var half_width: float = Constants.DEBUG_BORDER_WIDTH * 0.5
+    var current_window_size: Vector2i = DisplayServer.window_get_size()
+    var window_size: Vector2 = Vector2(float(current_window_size.x), float(current_window_size.y))
+    var border_rect: Rect2 = Rect2(
         Vector2(half_width, half_width),
         window_size - Vector2(Constants.DEBUG_BORDER_WIDTH, Constants.DEBUG_BORDER_WIDTH)
     )
@@ -107,17 +81,26 @@ func _unhandled_input(event: InputEvent) -> void:
     if not (event is InputEventMouseButton):
         return
 
-    var mouse_event := event as InputEventMouseButton
+    var mouse_event: InputEventMouseButton = event as InputEventMouseButton
     if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
         return
-    if not _is_inside_window_drag_area(mouse_event.position):
+
+    # 当前窗口会随托盘缩放改变真实尺寸; 只有事件坐标仍在真实窗口矩形内,
+    # 且事件没有被业务 UI 消费, 才允许拖动整个 OS 窗口.
+    var current_window_size: Vector2i = DisplayServer.window_get_size()
+    var window_rect: Rect2 = Rect2(
+        Vector2.ZERO,
+        Vector2(float(current_window_size.x), float(current_window_size.y))
+    )
+    if not window_rect.has_point(mouse_event.position):
         return
 
-    _ensure_window_controller().start_drag()
+    window_controller.start_drag()
     get_viewport().set_input_as_handled()
 
 # 统一设置主窗口透明行为.
 # project.godot 已经提供同样的默认值, 这里再次设置是为了从测试场景或编辑器运行回主场景时恢复透明窗口状态.
+# DisplayServer 操作的是真实 OS 窗口;
 func _configure_window() -> void:
     # 让 root viewport 支持透明背景. 没有这一句, 即使窗口透明, 画布也可能被默认底色填满.
     get_viewport().transparent_bg = true
@@ -133,44 +116,26 @@ func _configure_window() -> void:
     DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_RESIZE_DISABLED, true)
     # 开启窗口透明标志, 让透明像素可以透出桌面.
     DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_TRANSPARENT, true)
-    # 当前模式只管理最大 800x600 的主窗口.
-    _ensure_window_controller().initialize_window(Constants.WINDOW_SIZE, content_root)
-
-# 判断鼠标是否在当前窗口逻辑范围内.
-# 当前窗口会随托盘缩放改变真实尺寸; 只要在这个矩形内且事件没有被业务 UI 消费, 就允许测试期拖动窗口.
-func _is_inside_window_drag_area(mouse_position: Vector2) -> bool:
-    var current_window_size := DisplayServer.window_get_size()
-    var window_rect := Rect2(
-        Vector2.ZERO,
-        Vector2(float(current_window_size.x), float(current_window_size.y))
-    )
-    return window_rect.has_point(mouse_position)
-
-# 调整业务页的鼠标过滤规则.
-# Button、LineEdit、Slider 等真正可交互控件保持默认行为; 容器和标签这类布局控件不应吞掉空白区域点击.
-func _prepare_scene_input_routing(root: Node) -> void:
-    _set_passive_controls_to_pass(root)
+    # 当前模式只管理 Constants.WINDOW_SIZE 指定的主窗口范围.
+    window_controller.initialize_window()
 
 # 递归处理当前业务页下的 Control.
-# 这样 game 页里的按钮仍然优先响应, 但空白区域可以冒泡到 MainWindow 拖动整个窗口.
+# Button、LineEdit、Slider 等真正可交互控件保留默认行为; 容器和标签这类布局控件改为 MOUSE_FILTER_PASS.
+# 这样 game 页里的按钮仍然优先响应, 但空白区域不会被普通 Control 截断, 可以冒泡到 MainWindow 拖动整个窗口.
 func _set_passive_controls_to_pass(node: Node) -> void:
     if node is Control:
-        var control := node as Control
-        if not _is_interactive_control(control):
+        var control: Control = node as Control
+        var is_interactive_control := (
+            control is BaseButton
+            or control is LineEdit
+            or control is TextEdit
+            or control is Range
+        )
+        if not is_interactive_control:
             control.mouse_filter = Control.MOUSE_FILTER_PASS
 
     for child in node.get_children():
         _set_passive_controls_to_pass(child)
-
-# 判断一个 Control 是否需要保留自己的鼠标事件处理.
-# 这些控件要么能点击, 要么需要拖动/输入, 所以不改它们的 mouse_filter.
-func _is_interactive_control(control: Control) -> bool:
-    return (
-        control is BaseButton
-        or control is LineEdit
-        or control is TextEdit
-        or control is Range
-    )
 
 # 创建或返回内部窗口控制器.
 # 这个控制器必须挂在 MainWindow 下, 才能在主窗口生命周期内处理拖拽、缩放、透明度和点击穿透状态.
