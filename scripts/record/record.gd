@@ -35,22 +35,43 @@ const DEFAULT_PET_RECORDS := [
     },
 ]
 
+# 当前登录账号的运行期记录实例.
+# 第一版没有本地存档和后端登录, 所以它只在点击登录后创建, 进程退出后自然丢弃.
 var record = null
 
 # 创建一份新的运行期 AccountRecord.
 # 登录流程直接创建固定默认角色, 记录只保存在本次运行内存中.
 func create_record() -> void:
-    assert(Constants.is_character_id(DEFAULT_CHARACTER_ID), "账号记录角色资源 ID 非法: %d" % DEFAULT_CHARACTER_ID)
-    assert(not DEFAULT_CHARACTER_NAME.is_empty(), "账号记录 Nick 不能为空.")
+    _validate_default_record_data()
 
     record = GPB.AccountRecord.new()
     record.set_UsedUUID(0)
 
-    var character_uuid := _next_uuid()
+    var character_record = _create_default_character_record()
+    _add_default_pet_records(character_record)
+
+# 校验写死在 GRecord 内的默认账号数据.
+# 这些数据不是外部输入, 但它们决定登录后能否进入游戏页; 启动链路应在错误数据进入协议记录前直接暴露问题.
+func _validate_default_record_data() -> void:
+    assert(Constants.is_character_id(DEFAULT_CHARACTER_ID), "账号记录角色资源 ID 非法: %d" % DEFAULT_CHARACTER_ID)
+    assert(not DEFAULT_CHARACTER_NAME.is_empty(), "账号记录 Nick 不能为空.")
+
+    for raw_pet_record_data in DEFAULT_PET_RECORDS:
+        var pet_record_data: Dictionary = raw_pet_record_data as Dictionary
+        var pet_asset_id: int = int(pet_record_data["asset_id"])
+        var pet_nick: String = str(pet_record_data["nick"])
+        assert(Constants.is_pet_id(pet_asset_id), "宠物记录资源 ID 非法: %d" % pet_asset_id)
+        assert(not pet_nick.is_empty(), "宠物记录 Nick 不能为空.")
+
+# 创建默认角色并写入角色基础协议字段.
+# 返回值是 Godobuf 生成的 CharacterRecord 实例; 这里不额外声明具体类型, 避免脚本和生成协议类形成不必要的强类型耦合.
+func _create_default_character_record():
+    var character_uuid: int = _next_uuid()
     var character_record = record.add_CharacterRecordMap(character_uuid)
     character_record.set_UUID(character_uuid)
     character_record.set_Nick(DEFAULT_CHARACTER_NAME)
-    var asset_records := {
+
+    var asset_records: Dictionary = {
         GPB.AssetIDRecord.AssetIDRecord_AssetID: DEFAULT_CHARACTER_ID,
         GPB.AssetIDRecord.AssetIDRecord_HP: DEFAULT_HP,
         GPB.AssetIDRecord.AssetIDRecord_ElementalEarth: DEFAULT_ELEMENTAL["earth"],
@@ -62,28 +83,44 @@ func create_record() -> void:
         GPB.AssetIDRecord.AssetIDRecord_Character_AttributesAgility: DEFAULT_CHARACTER_ATTRIBUTE,
         GPB.AssetIDRecord.AssetIDRecord_Character_AttributesStamina: DEFAULT_CHARACTER_ATTRIBUTE,
     }
-    for asset_key in asset_records.keys():
+    for asset_key in asset_records:
         character_record.add_AssetIDRecordMap(int(asset_key), int(asset_records[asset_key]))
 
-    for pet_record_data in DEFAULT_PET_RECORDS:
-        var pet_uuid := _next_uuid()
-        var pet_asset_id := int(pet_record_data["asset_id"])
-        var pet_nick := str(pet_record_data["nick"])
-        assert(Constants.is_pet_id(pet_asset_id), "宠物记录资源 ID 非法: %d" % pet_asset_id)
-        assert(not pet_nick.is_empty(), "宠物记录 Nick 不能为空.")
+    return character_record
 
-        var pet_record = character_record.add_PetRecordMap(pet_uuid)
-        pet_record.set_UUID(pet_uuid)
-        pet_record.set_Nick(pet_nick)
-        pet_record.add_AssetRecordBaseMap(GPB.AssetIDRecord.AssetIDRecord_AssetID, pet_asset_id)
-        pet_record.add_AssetRecordBaseMap(GPB.AssetIDRecord.AssetIDRecord_Exp, int(pet_record_data["exp"]))
-        pet_record.add_AssetRecordBaseMap(GPB.AssetIDRecord.AssetIDRecord_HP, int(pet_record_data["hp"]))
-        pet_record.add_AssetRecordBaseMap(GPB.AssetIDRecord.AssetIDRecord_Pet_AttributesAttack, int(pet_record_data["attack"]))
-        pet_record.add_AssetRecordBaseMap(GPB.AssetIDRecord.AssetIDRecord_Pet_AttributesDefense, int(pet_record_data["defense"]))
-        pet_record.add_AssetRecordBaseMap(GPB.AssetIDRecord.AssetIDRecord_Pet_AttributesAgility, int(pet_record_data["agility"]))
+# 为默认角色挂载第一版内置宠物记录.
+# 宠物记录属于角色下的 map, 所以调用方必须先创建角色记录.
+func _add_default_pet_records(character_record) -> void:
+    for raw_pet_record_data in DEFAULT_PET_RECORDS:
+        var pet_record_data: Dictionary = raw_pet_record_data as Dictionary
+        _add_default_pet_record(character_record, pet_record_data)
 
+# 把单个默认宠物转换成 Godobuf PetRecord.
+# DEFAULT_PET_RECORDS 使用便于人工维护的字段名, 写入协议时在这里集中转换成 AssetIDRecord 枚举字段.
+func _add_default_pet_record(character_record, pet_record_data: Dictionary) -> void:
+    var pet_uuid: int = _next_uuid()
+    var pet_asset_id: int = int(pet_record_data["asset_id"])
+    var pet_nick: String = str(pet_record_data["nick"])
+
+    var pet_record = character_record.add_PetRecordMap(pet_uuid)
+    pet_record.set_UUID(pet_uuid)
+    pet_record.set_Nick(pet_nick)
+
+    var asset_records: Dictionary = {
+        GPB.AssetIDRecord.AssetIDRecord_AssetID: pet_asset_id,
+        GPB.AssetIDRecord.AssetIDRecord_Exp: int(pet_record_data["exp"]),
+        GPB.AssetIDRecord.AssetIDRecord_HP: int(pet_record_data["hp"]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_AttributesAttack: int(pet_record_data["attack"]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_AttributesDefense: int(pet_record_data["defense"]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_AttributesAgility: int(pet_record_data["agility"]),
+    }
+    for asset_key in asset_records:
+        pet_record.add_AssetRecordBaseMap(int(asset_key), int(asset_records[asset_key]))
+
+# 从当前账号记录中分配新的运行期 UUID.
+# UsedUUID 存在 AccountRecord 里, 保证同一份内存记录中的角色和宠物使用同一个递增序列.
 func _next_uuid() -> int:
     assert(record != null, "生成 UUID 前必须先创建账号记录.")
-    var uuid := int(record.get_UsedUUID()) + 1
+    var uuid: int = int(record.get_UsedUUID()) + 1
     record.set_UsedUUID(uuid)
     return uuid
