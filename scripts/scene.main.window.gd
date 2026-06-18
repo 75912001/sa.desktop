@@ -114,6 +114,8 @@ func _configure_window() -> void:
     DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
     # 禁止用户直接拖动系统边框缩放窗口, 保持 UI 布局和设计尺寸一致.
     DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_RESIZE_DISABLED, true)
+    # 主桌宠窗口默认永远置顶, 避免被 普通应用窗口盖住.
+    DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
     # 开启窗口透明标志, 让透明像素可以透出桌面.
     DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_TRANSPARENT, true)
     # 当前模式只管理 Constants.WINDOW_SIZE 指定的主窗口范围.
