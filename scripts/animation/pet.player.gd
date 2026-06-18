@@ -10,19 +10,13 @@ extends FramePlayer
 # target_anchor_position 使用父节点或窗口内容坐标系, 表示宠物锚点要落到的位置.
 func play_pet(pet_id: int, direction: int, action: int, target_anchor_position: Vector2) -> bool:
     # 宠物播放器只接受宠物动作枚举. Unknown 表示调用方传入了未解析或不支持的动作.
-    if direction == GPB.AssetDirection.AssetDirection_Unknow:
-        push_error("宠物动画显示方向未知: pet=%d direction=%d" % [pet_id, direction])
-        return false
-    if action == GPB.PetAction.PetAction_Unknow:
-        push_error("宠物动画动作未知: pet=%d action=%d" % [pet_id, action])
-        return false
+    assert(direction != GPB.AssetDirection.AssetDirection_Unknow, "宠物动画显示方向未知: pet=%d direction=%d" % [pet_id, direction])
+    assert(action != GPB.PetAction.PetAction_Unknow, "宠物动画动作未知: pet=%d action=%d" % [pet_id, action])
 
     # GCfgMgr.pet_config 已在主场景前由 ConfigManager 初始化.
     # get_by_id() 会按需懒加载 atlas, 播放器拿到 Entry 后不再关心资源路径.
     var entry := GCfgMgr.pet.get_by_id(pet_id)
-    if entry == null:
-        push_error("宠物配置不存在: pet=%d" % pet_id)
-        return false
+    assert(entry != null, "宠物配置不存在: pet=%d" % pet_id)
 
     # 配置加载阶段已经保证合法宠物具备完整动作帧表, 播放器直接取出当前方向和动作的帧序列.
     var play_info := entry.get_play_info(direction, action)
