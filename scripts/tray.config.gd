@@ -1,3 +1,4 @@
+class_name TrayConfig
 extends Node
 
 # 托盘配置 helper.
