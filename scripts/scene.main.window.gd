@@ -96,7 +96,23 @@ func _unhandled_input(event: InputEvent) -> void:
         return
 
     window_controller.start_drag()
+    set_process(true)
     get_viewport().set_input_as_handled()
+
+# 主窗口只在拖拽期间开启逐帧处理.
+# WindowController 负责移动和吸附真实窗口, GTray 负责保存最终位置.
+func _process(_delta: float) -> void:
+    if window_controller == null or not window_controller.is_drag_active():
+        set_process(false)
+        return
+
+    if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+        window_controller.update_drag()
+        return
+
+    var final_position := window_controller.finish_drag()
+    assert(GTray.set_window_position(final_position), "保存窗口拖拽位置失败, 请检查 config/tray.yaml.")
+    set_process(false)
 
 # 统一设置主窗口透明行为.
 # project.godot 已经提供同样的默认值, 这里再次设置是为了从测试场景或编辑器运行回主场景时恢复透明窗口状态.
