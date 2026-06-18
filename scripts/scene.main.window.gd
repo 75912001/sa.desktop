@@ -61,7 +61,7 @@ func switch_scene(scene_path: String) -> void:
 # Node2D 的 `_draw()` 只负责绘制调试线框.
 # 这里不使用额外 UI 节点, 是为了让红边纯粹作为视觉提示, 不参与鼠标命中和输入分发.
 func _draw() -> void:
-    if not GTray.get_window_debug_border_enabled():
+    if not GTrayConfig.get_window_debug_border_enabled():
         return
 
     var half_width: float = Constants.DEBUG_BORDER_WIDTH * 0.5
@@ -100,7 +100,7 @@ func _unhandled_input(event: InputEvent) -> void:
     get_viewport().set_input_as_handled()
 
 # 主窗口只在拖拽期间开启逐帧处理.
-# WindowController 负责移动和吸附真实窗口, GTray 负责保存最终位置.
+# WindowController 负责移动和吸附真实窗口, GTrayConfig 负责保存最终位置.
 func _process(_delta: float) -> void:
     if window_controller == null or not window_controller.is_drag_active():
         set_process(false)
@@ -111,7 +111,7 @@ func _process(_delta: float) -> void:
         return
 
     var final_position := window_controller.finish_drag()
-    assert(GTray.set_window_position(final_position), "保存窗口拖拽位置失败, 请检查 config/tray.yaml.")
+    assert(GTrayConfig.set_window_position(final_position), "保存窗口拖拽位置失败, 请检查 config/tray.yaml.")
     set_process(false)
 
 # 统一设置主窗口透明行为.

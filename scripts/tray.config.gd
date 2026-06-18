@@ -13,6 +13,9 @@ extends Node
 # get/set 方法都通过 _ensure_config_loaded() 懒加载, 写回成功后继续复用这份缓存.
 var data: Dictionary = {}
 
+func _ready() -> void:
+    pass
+
 # 加载配置并校验必需字段.
 # 如果运行期配置文件不存在, 先从模板复制生成一份完整配置.
 # 这个函数不执行窗口副作用, 只做文件初始化, MiniYAML 读取, 必填校验和字段归一化.
