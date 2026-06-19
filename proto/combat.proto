@@ -4,7 +4,6 @@ package pb;
 
 option go_package = "saClient/proto";
 
-
 // 战斗-敌人组-敌人数量-范围
 enum CombatEnemyGroupEnemyCountRange {
   CombatEnemyGroupEnemyCountRange_Unknow = 0; // 未知参数
@@ -17,4 +16,63 @@ enum CombatEnemyGroupEnemyCountRange {
 enum CombatEnemyGroupBabyRate {
   CombatEnemyGroupBabyRate_Min = 0; // 敌人组-宝宝概率最小值
   CombatEnemyGroupBabyRate_Max = 100000; // 敌人组-宝宝概率最大值(十万分率,100000=100%)
+}
+
+// 战斗阵营
+// 0 表示本场战斗发起方, 1 表示被攻击方.
+// 客户端展示时再根据观看者视角映射到左上或右下站位区域.
+enum CombatCamp {
+  CombatCamp_Initiator = 0; // 战斗发起方
+  CombatCamp_Defender = 1; // 被攻击方
+}
+
+// 战斗单位主键
+// CharacterUUID + PetUUID 在同一场战斗内必须唯一.
+// 角色单位使用 PetUUID=0, 玩家宠物单位使用归属角色UUID + 宠物UUID, 怪物单位使用 CharacterUUID=0 + 本场临时 PetUUID.
+message CombatUnitKey {
+  uint64 CharacterUUID = 1; // 角色记录UUID; 怪物单位为0
+  uint64 PetUUID = 2; // 宠物记录UUID或本场怪物临时UUID; 角色单位为0
+}
+
+// 战斗单位开战属性快照
+// 等级不单独传输, 由 Exp 按配置侧规则推导.
+message CombatUnitAttribute {
+  uint64 Exp = 1; // 经验值
+  uint64 HP = 2; // 当前生命
+  uint64 Attack = 3; // 攻击
+  uint64 Defense = 4; // 防御
+  uint64 Agility = 5; // 敏捷
+  uint64 Loyalty = 6; // 忠诚度; 非宠物单位可为0
+}
+
+// 战斗装备绑定
+message CombatEquipmentBind {
+  uint32 EquipmentID = 1; // 装备展示ID
+}
+
+// 战斗单位开战快照
+// CharacterID + PetID 共同决定单位类型:
+// CharacterID != 0 且 PetID == 0 表示角色单位.
+// CharacterID != 0 且 PetID != 0 表示玩家宠物单位.
+// CharacterID == 0 且 PetID != 0 表示怪物单位.
+// CharacterID == 0 且 PetID == 0 是非法单位.
+// MountPetID != 0 表示当前单位挂载骑宠资源, MountPetID == 0 表示没有骑宠.
+message CombatUnit {
+  CombatUnitKey Key = 1; // 战斗单位复合主键
+  CombatCamp Camp = 2; // 阵营
+  uint32 Position = 3; // 阵营内站位, 范围[0,9]
+
+  uint32 CharacterID = 10; // 角色资源ID; 怪物单位为0, 玩家宠物单位填归属角色资源ID
+  uint32 PetID = 11; // 宠物资源ID; 角色单位为0
+  uint32 MountPetID = 13; // 骑宠资源ID; 没有骑宠为0
+
+  CombatUnitAttribute Attribute = 20; // 开战属性快照
+  repeated CombatEquipmentBind EquipmentList = 30; // 穿在身上的装备
+}
+
+// 战斗开战快照
+// 只包含场上可见单位, 不传背包宠物或备用宠物.
+message CombatBattleStart {
+  uint64 BattleID = 1; // 战斗ID
+  repeated CombatUnit UnitList = 10; // 场上可见单位列表
 }
