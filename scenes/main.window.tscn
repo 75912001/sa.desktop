@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bq4wq8j4y0gk1"]
 
 [ext_resource type="Script" uid="uid://cix4ejukch8fr" path="res://scripts/scene.main.window.gd" id="1_1fp7r"]
-[ext_resource type="Script" uid="uid://dhxl7nowmqugf" path="res://scripts/tray.controller.gd" id="3_v5dby"]
+[ext_resource type="Script" uid="uid://dhxl7nowmqugf" path="res://scripts/tray/controller.gd" id="3_v5dby"]
 
 [node name="MainWindow" type="Node2D" unique_id=1906308133]
 script = ExtResource("1_1fp7r")
