@@ -1,0 +1,145 @@
+[gd_scene format=3 uid="uid://bwu7fi134tnjx"]
+
+[ext_resource type="Script" uid="uid://7drpdgfr180a" path="res://tests/test_pet_offsets.gd" id="1_test"]
+
+[node name="TestPetOffsets" type="Control" unique_id=2135116287]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_test")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1466808453]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12, 0.12, 0.14, 1)
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=755499403]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="ScrollContainer" unique_id=1964251201]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="ScrollContainer/VBox" unique_id=79740878]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "偏移播放测试"
+
+[node name="Bar1" type="HBoxContainer" parent="ScrollContainer/VBox" unique_id=2070582520]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PetLabel" type="Label" parent="ScrollContainer/VBox/Bar1" unique_id=662218406]
+layout_mode = 2
+text = "宠物"
+
+[node name="PetSelect" type="OptionButton" parent="ScrollContainer/VBox/Bar1" unique_id=1208994553]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+
+[node name="LoopCheck" type="CheckBox" parent="ScrollContainer/VBox/Bar1" unique_id=1107300689]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "循环"
+
+[node name="PlayButton" type="Button" parent="ScrollContainer/VBox/Bar1" unique_id=1844977380]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "暂停"
+
+[node name="PrevButton" type="Button" parent="ScrollContainer/VBox/Bar1" unique_id=118676856]
+unique_name_in_owner = true
+layout_mode = 2
+text = "上一帧"
+
+[node name="NextButton" type="Button" parent="ScrollContainer/VBox/Bar1" unique_id=1686862816]
+unique_name_in_owner = true
+layout_mode = 2
+text = "下一帧"
+
+[node name="ActionPrevButton" type="Button" parent="ScrollContainer/VBox/Bar1" unique_id=709844852]
+unique_name_in_owner = true
+layout_mode = 2
+text = "动作↑"
+
+[node name="ActionNextButton" type="Button" parent="ScrollContainer/VBox/Bar1" unique_id=1624001463]
+unique_name_in_owner = true
+layout_mode = 2
+text = "动作↓"
+
+[node name="DirectionPrevButton" type="Button" parent="ScrollContainer/VBox/Bar1" unique_id=1308672791]
+unique_name_in_owner = true
+layout_mode = 2
+text = "方向←"
+
+[node name="DirectionNextButton" type="Button" parent="ScrollContainer/VBox/Bar1" unique_id=622623174]
+unique_name_in_owner = true
+layout_mode = 2
+text = "方向→"
+
+[node name="GuidesCheck" type="CheckBox" parent="ScrollContainer/VBox/Bar1" unique_id=786884032]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "辅助线"
+
+[node name="ActionTitle" type="Label" parent="ScrollContainer/VBox" unique_id=1263116068]
+layout_mode = 2
+text = "动作"
+
+[node name="ActionGrid" type="GridContainer" parent="ScrollContainer/VBox" unique_id=2015717738]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 2
+
+[node name="DirectionTitle" type="Label" parent="ScrollContainer/VBox" unique_id=1786828596]
+layout_mode = 2
+text = "方向"
+
+[node name="DirectionGrid" type="GridContainer" parent="ScrollContainer/VBox" unique_id=191794422]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 3
+
+[node name="PreviewRow" type="HBoxContainer" parent="ScrollContainer/VBox" unique_id=1712747057]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PreviewGrid" type="GridContainer" parent="ScrollContainer/VBox/PreviewRow" unique_id=1050527333]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="InfoLabel" type="Label" parent="ScrollContainer/VBox" unique_id=73679696]
+unique_name_in_owner = true
+layout_mode = 2
+text = "准备加载宠物偏移测试"
+autowrap_mode = 2
