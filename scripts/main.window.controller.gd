@@ -9,11 +9,7 @@ extends Node
 # 释放拖拽时距离屏幕边缘小于这个值就吸附.
 const SNAP_DISTANCE := 48
 
-# 缩放和透明度的边界统一放在控制器中, 确保托盘输入、配置恢复和脚本调用走同一套约束.
-const MIN_SCALE := 0.1
-const MAX_SCALE := 1.0
-const MIN_OPACITY := 0.1
-const MAX_OPACITY := 1.0
+# 缩放和透明度的边界统一放在 Constants 中, 确保托盘输入、配置恢复和脚本调用走同一套约束.
 
 # 拖拽状态只在鼠标按下到释放之间有效.
 # drag_offset 记录鼠标点击点到 OS 窗口左上角的距离, 这样拖拽中窗口不会跳到鼠标坐标.
@@ -82,7 +78,7 @@ func set_scale(value: float) -> void:
         float(current_position.y) + float(current_size.y) * 0.5
     )
 
-    var next_scale := clampf(value, MIN_SCALE, MAX_SCALE)
+    var next_scale := clampf(value, Constants.WINDOW_MIN_SCALE, Constants.WINDOW_MAX_SCALE)
     var next_size := _scaled_window_size(next_scale)
     _apply_window_layout(next_scale)
     var next_position := Vector2i(
@@ -96,7 +92,7 @@ func set_scale(value: float) -> void:
 func set_opacity(value: float) -> void:
     # 透明度只影响业务内容根节点.
     # 主窗口透明背景和调试边框不跟随 alpha 改变, 方便观察真实窗口范围.
-    var next_opacity := clampf(value, MIN_OPACITY, MAX_OPACITY)
+    var next_opacity := clampf(value, Constants.WINDOW_MIN_OPACITY, Constants.WINDOW_MAX_OPACITY)
     GMainWindow.main_window.content_root.modulate.a = next_opacity
 
 # 把窗口放到当前屏幕右下角附近.
