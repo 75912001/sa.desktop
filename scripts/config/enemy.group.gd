@@ -40,7 +40,7 @@ func load() -> void:
     assert(not (groups as Array).is_empty(), "敌人组配置中没有解析到 enemyGroups 数据: %s" % Constants.CONFIG_ENEMY_GROUP_PATH)
 
     # enemyGroups 是战斗敌方模板的主数据.
-    # 每条记录转换成 EnemyGroupEntry, 之后 BattleScene 只按结构体字段读取, 不直接访问 YAML 字典.
+    # 每条记录转换成 EnemyGroupEntry, 之后 CombatScene 只按结构体字段读取, 不直接访问 YAML 字典.
     for raw_group in groups:
         assert(raw_group is Dictionary, "敌人组条目须为对象: %s" % Constants.CONFIG_ENEMY_GROUP_PATH)
 
