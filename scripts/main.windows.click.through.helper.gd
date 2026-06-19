@@ -22,3 +22,18 @@ func set_click_through(window_id: int, enabled: bool) -> bool:
     assert(pid > 0, "Windows 点击穿透 helper 启动失败, pid=%d." % pid)
 
     return true
+
+# 设置指定窗口标题栏最大化按钮是否可用.
+# Godot 目前只暴露固定尺寸和禁止 resize, Windows 标题栏最大化框需要通过 Win32 样式直接移除.
+func set_maximize_enabled(window_id: int, enabled: bool) -> bool:
+    assert(OS.get_name() == "Windows", "Windows 窗口样式 helper 只支持 Windows.")
+    var helper_path := ProjectSettings.globalize_path(RESOURCE_HELPER_PATH)
+    assert(FileAccess.file_exists(helper_path), "Windows 窗口样式 helper 不存在.")
+
+    var hwnd := int(DisplayServer.window_get_native_handle(DisplayServer.WINDOW_HANDLE, window_id))
+    assert(hwnd != 0, "Windows 窗口样式 helper 无法获取窗口 HWND.")
+
+    var pid := OS.create_process(helper_path, ["maximize", str(hwnd), "1" if enabled else "0"], false)
+    assert(pid > 0, "Windows 窗口样式 helper 启动失败, pid=%d." % pid)
+
+    return true
