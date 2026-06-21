@@ -57,7 +57,7 @@ enum AssetIDRange {
   AssetIDRange_Plant_End = 8999999; // 植物-结束
 
   AssetIDRange_Pet_Skill_Start = 9000001; // 宠物技能-开始
-  AssetIDRange_Pet_Skill_End = 9999999; // 宠物
+  AssetIDRange_Pet_Skill_End = 9999999; // 宠物技能-结束
 }
 
 // 资产ID-记录 [1,1000000]
@@ -83,26 +83,27 @@ enum AssetIDRecord {
   // 角色 [1001,2000]
   AssetIDRecord_Character_LastLoginTimestamp = 1001; // 上次登录时间戳
   AssetIDRecord_Character_LastLogoutTimestamp = 1002; // 上次登出时间戳
-  AssetIDRecord_Character_AvailablePoint = 1003; // 可用点数 - 出生/升级/转生 后获得的可用点数
 
-  AssetIDRecord_Character_AttributesStrength = 1101; // 腕力 (1HP, 1攻, 0.1防) [主要提升攻击力，HP 提升较少]
-  AssetIDRecord_Character_AttributesEndurance = 1102; // 耐力 (1HP, 0.1攻, 1防) [主要提升防御力，HP 提升较少]
-  AssetIDRecord_Character_AttributesAgility = 1103; // 敏捷 (1HP, 1敏捷, 0.05攻, 0.05防) [主要提升敏捷，HP 提升较少]
-  AssetIDRecord_Character_AttributesStamina = 1104; // 体力 (4HP, 0.1攻击, 0.1防御) [对 HP 提升最大，是 "血牛" 角色首选]
+  AssetIDRecord_Character_Available_Point = 1101; // 可用点数 - 出生/升级/转生 后获得的可用点数
+  AssetIDRecord_Character_Attributes_Vitality = 1102; // 活力 (4HP, 0.1攻击, 0.1防御) [对 HP 提升最大，是 "血牛" 角色首选]
+  AssetIDRecord_Character_Attributes_Strength = 1103; // 腕力 (1HP, 1攻, 0.1防) [主要提升攻击力，HP 提升较少]
+  AssetIDRecord_Character_Attributes_Toughness = 1104; // 耐力 (1HP, 0.1攻, 1防) [主要提升防御力，HP 提升较少]
+  AssetIDRecord_Character_Attributes_Dexterity = 1105; // 敏捷 (1HP, 1敏捷, 0.05攻, 0.05防) [主要提升敏捷，HP 提升较少]
 
   // 宠物 [2001,3000]
-  AssetIDRecord_Pet_AttributesAttack = 2001; // 宠物属性-攻击
-  AssetIDRecord_Pet_AttributesDefense = 2002; // 宠物属性-防御
-  AssetIDRecord_Pet_AttributesAgility = 2003; // 宠物属性-敏捷
-  AssetIDRecord_Pet_AttributesHP = 2004; // 宠物属性-生命
-  AssetIDRecord_Pet_Loyalty = 2005; // 宠物忠诚度 [0,100]
+  AssetIDRecord_Pet_Loyalty = 2001; // 宠物忠诚度 [0,100]
 
-  // 宠物属性-初始属性, 用户计算成长率,预测宠物最终属性
-  AssetIDRecord_Pet_AttributesLevel_InitialStats = 2101; // 宠物属性-等级-初始属性
-  AssetIDRecord_Pet_AttributesAttack_InitialStats = 2102; // 宠物属性-攻击-初始属性
-  AssetIDRecord_Pet_AttributesDefense_InitialStats = 2103; // 宠物属性-防御-初始属性
-  AssetIDRecord_Pet_AttributesAgility_InitialStats = 2104; // 宠物属性-敏捷-初始属性
-  AssetIDRecord_Pet_AttributesHP_InitialStats = 2105; // 宠物属性-生命-初始属性
+  AssetIDRecord_Pet_SavedBase_Vitality = 2101; // 宠物个体自己的成长基础-活力
+  AssetIDRecord_Pet_SavedBase_Strength = 2102; // 宠物个体自己的成长基础-腕力
+  AssetIDRecord_Pet_SavedBase_Toughness = 2103; // 宠物个体自己的成长基础-耐力
+  AssetIDRecord_Pet_SavedBase_Dexterity = 2104; // 宠物个体自己的成长基础-敏捷
+
+  AssetIDRecord_Pet_Raw_Vitality = 2201; // 随机点-生命
+  AssetIDRecord_Pet_Raw_Strength = 2202; // 随机点-强壮
+  AssetIDRecord_Pet_Raw_Toughness = 2203; // 随机点-坚韧
+  AssetIDRecord_Pet_Raw_Dexterity = 2204; // 随机点-敏捷
+
+  // 宠物属性-初始属性, 用户计算成长率,预测宠物最终属性 todo menglc
 }
 
 // 资产元素属性
