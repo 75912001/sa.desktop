@@ -1762,7 +1762,8 @@ enum AssetType {
 	AssetType_NPC = 5,
 	AssetType_Decoration = 6,
 	AssetType_Building = 7,
-	AssetType_Plant = 8
+	AssetType_Plant = 8,
+	AssetType_Pet_Skill = 9
 }
 
 enum AssetIDRange {
@@ -1784,7 +1785,9 @@ enum AssetIDRange {
 	AssetIDRange_Building_Start = 7000001,
 	AssetIDRange_Building_End = 7999999,
 	AssetIDRange_Plant_Start = 8000001,
-	AssetIDRange_Plant_End = 8999999
+	AssetIDRange_Plant_End = 8999999,
+	AssetIDRange_Pet_Skill_Start = 9000001,
+	AssetIDRange_Pet_Skill_End = 9999999
 }
 
 enum AssetIDRecord {
@@ -1804,21 +1807,20 @@ enum AssetIDRecord {
 	AssetIDRecord_ElementalWind = 104,
 	AssetIDRecord_Character_LastLoginTimestamp = 1001,
 	AssetIDRecord_Character_LastLogoutTimestamp = 1002,
-	AssetIDRecord_Character_AvailablePoint = 1003,
-	AssetIDRecord_Character_AttributesStrength = 1101,
-	AssetIDRecord_Character_AttributesEndurance = 1102,
-	AssetIDRecord_Character_AttributesAgility = 1103,
-	AssetIDRecord_Character_AttributesStamina = 1104,
-	AssetIDRecord_Pet_AttributesAttack = 2001,
-	AssetIDRecord_Pet_AttributesDefense = 2002,
-	AssetIDRecord_Pet_AttributesAgility = 2003,
-	AssetIDRecord_Pet_AttributesHP = 2004,
-	AssetIDRecord_Pet_Loyalty = 2005,
-	AssetIDRecord_Pet_AttributesLevel_InitialStats = 2101,
-	AssetIDRecord_Pet_AttributesAttack_InitialStats = 2102,
-	AssetIDRecord_Pet_AttributesDefense_InitialStats = 2103,
-	AssetIDRecord_Pet_AttributesAgility_InitialStats = 2104,
-	AssetIDRecord_Pet_AttributesHP_InitialStats = 2105
+	AssetIDRecord_Character_Available_Point = 1101,
+	AssetIDRecord_Character_Attributes_Vitality = 1102,
+	AssetIDRecord_Character_Attributes_Strength = 1103,
+	AssetIDRecord_Character_Attributes_Toughness = 1104,
+	AssetIDRecord_Character_Attributes_Dexterity = 1105,
+	AssetIDRecord_Pet_Loyalty = 2001,
+	AssetIDRecord_Pet_SavedBase_Vitality = 2101,
+	AssetIDRecord_Pet_SavedBase_Strength = 2102,
+	AssetIDRecord_Pet_SavedBase_Toughness = 2103,
+	AssetIDRecord_Pet_SavedBase_Dexterity = 2104,
+	AssetIDRecord_Pet_Raw_Vitality = 2201,
+	AssetIDRecord_Pet_Raw_Strength = 2202,
+	AssetIDRecord_Pet_Raw_Toughness = 2203,
+	AssetIDRecord_Pet_Raw_Dexterity = 2204
 }
 
 enum AssetElemental {
