@@ -1,30 +1,21 @@
 # 资产ID-宠物 [4000101,4999999]
 # 任何修改此文件的行为都需要通知客户端和服务端开发人员
 
-
-############################################################
-# attribute 属性-默认
-############################################################
-attribute:
-  - critRate: 0.10 # 暴击率, 范围[0,1]
-  - counterRate: 0.10 # 反击率, 范围[0,1]
-  - dodgeRate: 0.10 # 闪避率, 范围[0,1]
-  - hitRate: 0.9 # 命中率, 范围[0,1]
-  - critDamageBonusRate: 0.50 # 暴击伤害加成倍数, 范围[0,1]
-  - statusResistRate: 0.20 # 异常状态抗性比率, 范围[0,1]
-
 ############################################################
 # pet 宠物
 ############################################################
+# enemyId: 关联pet_growth_8_0.csv中的enemyId todo menglc 从中获取的数据
 # rarity 稀有度: 1-普通, 2-稀有, 3-史诗, 4-传说, 5-神话
 # elemental 元素属性: earth-土, water-水, fire-火, wind-风 [默认:0] (整数, 范围[0,10], 总和必须等于10) (要么是单元素, 要么是两个元素相邻, 可以首尾相邻)
-# attribute 属性: 只保留倍率字段, 基础四维由 growth 和后续公式计算.
-  ## critRate - 暴击率 范围[0,1]
-  ## counterRate - 反击率 范围[0,1]
-  ## dodgeRate - 闪避率 范围[0,1]
-  ## hitRate - 命中率 范围[0,1]
-  ## critDamageBonusRate - 暴击伤害加成倍数 范围[0,1]
-  ## statusResistRate - 异常状态抗性比率 范围[0,1]
+# attribute 属性:
+  ## poisonResist - 毒抗性
+  ## paralysisResist - 麻痹抗性
+  ## sleepResist - 睡眠抗性
+  ## stoneResist - 石化抗性
+  ## drunkResist - 酒醉抗性
+  ## confusionResist - 混乱抗性
+  ## critical - 暴击字段
+  ## counter - 反击字段
 # growth 原始成长配置: 用于生成和升级时的四维成长计算
 #   initNum: [配置] 初始系数, 参与初始四维计算.
 #   lvupPointSource: [配置] 原始升级成长点字段文本, 例如 4.50.
@@ -36,20 +27,106 @@ attribute:
 # level1Spawn: 1级出生地
 # description: 描述
 ############################################################
+# 1 级宠物生成伪代码:
+# 解析成长字段:
+#   init_factor = float(initNum)
+#   lvup_point = float(lvupPointSource)
+#
+# 宠物个体自己的成长基础四维:
+#   saved_base_vital = baseVital + random(-2, -1, 0, 1, 2)
+#   saved_base_str = baseStr + random(-2, -1, 0, 1, 2)
+#   saved_base_tough = baseTough + random(-2, -1, 0, 1, 2)
+#   saved_base_dex = baseDex + random(-2, -1, 0, 1, 2)
+
+# 再随机分配 10 点到四维, 只影响初始 raw 属性:
+#   final_base_vital = saved_base_vital
+#   final_base_str = saved_base_str
+#   final_base_tough = saved_base_tough
+#   final_base_dex = saved_base_dex
+#   repeat 10 times:
+#       target = random(vital, str, tough, dex)
+#       if target == vital: final_base_vital += 1
+#       if target == str: final_base_str += 1
+#       if target == tough: final_base_tough += 1
+#       if target == dex: final_base_dex += 1
+#
+# 计算初始 raw 四维:
+#   raw_vital = int(init_factor * final_base_vital)
+#   raw_str = int(init_factor * final_base_str)
+#   raw_tough = int(init_factor * final_base_tough)
+#   raw_dex = int(init_factor * final_base_dex)
+#
+# 生成真实宠物实例时, 运行方必须保存实例字段:
+#   saved_base_vital
+#   saved_base_str
+#   saved_base_tough
+#   saved_base_dex
+#   初始 raw 四维
+#       raw_vital, raw_str, raw_tough, raw_dex
+
+# 面板换算公式:
+# [推导] HP = int((raw_vital * 4 + raw_str + raw_tough + raw_dex) * 0.01)
+# [推导] attack = int(raw_str * 0.01 + raw_tough * 0.001 + raw_vital * 0.001 + raw_dex * 0.0005)
+# [推导] defense = int(raw_tough * 0.01 + raw_str * 0.001 + raw_vital * 0.001 + raw_dex * 0.0005)
+# [推导] agility = int(raw_dex * 0.01)
+############################################################
+# 宠物升级伪代码:
+# rank 的来源, 发生在生成宠物时:
+#   base_sum = baseVital + baseStr + baseTough + baseDex
+#   if base_sum >= 100: rank = 0
+#   elif base_sum >= 95: rank = 1
+#   elif base_sum >= 90: rank = 2
+#   elif base_sum >= 85: rank = 3
+#   elif base_sum >= 80: rank = 4
+#   else: rank = 5
+#
+# 生成本次升级随机点:
+#   add_vital = 0
+#   add_str = 0
+#   add_tough = 0
+#   add_dex = 0
+#   repeat 10 times:
+#       target = random(vital, str, tough, dex)
+#       if target == vital: add_vital += 1
+#       if target == str: add_str += 1
+#       if target == tough: add_tough += 1
+#       if target == dex: add_dex += 1
+#
+# 根据 rank 选择成长系数范围:
+#   rank_ranges = {
+#       0: [4.50, 5.00],
+#       1: [4.70, 5.20],
+#       2: [4.90, 5.40],
+#       3: [5.10, 5.60],
+#       4: [5.30, 5.80],
+#       5: [5.50, 6.00],
+#   }
+#   rank_rand = random(rank_ranges[rank].min, rank_ranges[rank].max)
+#
+# 写回升级后的 raw 四维:
+#   raw_vital += int((saved_base_vital + add_vital) * rank_rand)
+#   raw_str += int((saved_base_str + add_str) * rank_rand)
+#   raw_tough += int((saved_base_tough + add_tough) * rank_rand)
+#   raw_dex += int((saved_base_dex + add_dex) * rank_rand)
+#
+# 最后重新执行面板换算公式, 得到新的 HP/攻击/防御/敏捷.
 pet:
 ############################################################
   - id: 4000101
     name: 利则诺顿
+    enemyId: 54
     rarity: 2
     elemental:
       earth: 10
     attribute:
-      critRate: 0.12
-      counterRate: 0.08
-      dodgeRate: 0.15
-      hitRate: 0.92
-      critDamageBonusRate: 0.6
-      statusResistRate: 0.25
+      poisonResist: 0
+      paralysisResist: 0
+      sleepResist: 0
+      stoneResist: 0
+      drunkResist: 0
+      confusionResist: 0
+      critical: 5
+      counter: 0
     growth:
       initNum: 22
       lvupPointSource: 4.50
@@ -57,7 +134,7 @@ pet:
       baseStr: 37
       baseTough: 19
       baseDex: 17
-    skill: [9000002,9000003,0,0]
+    skill: [9000002,9000003,0,0,0,0,0]
     habitat: 琉璃洞窟 6X等. 無名洞地下3樓 8X等
     level1Spawn: 五兄弟任務取得、琉璃洞窟13樓
     description: 綠人龍，作夢都想偷走藍人龍的戒指，堅稱自己的利則恩首飾才是超熱門的搶手貨
@@ -129,25 +206,28 @@ pet:
 ############################################################
   - id: 4000102
     name: 扬奇洛斯
+    enemyId: 55
     rarity: 2
     elemental:
       water: 3
       fire: 7
     attribute:
-      critRate: 0.12
-      counterRate: 0.08
-      dodgeRate: 0.15
-      hitRate: 0.92
-      critDamageBonusRate: 0.6
-      statusResistRate: 0.25
+      poisonResist: 0
+      paralysisResist: 0
+      sleepResist: 0
+      stoneResist: 0
+      drunkResist: 0
+      confusionResist: 0
+      critical: 5
+      counter: 0
     growth:
       initNum: 29
-      lvupPointSource: "4.50"
+      lvupPointSource: 4.50
       baseVital: 27
       baseStr: 36
       baseTough: 16
       baseDex: 20
-    skill: [9000002,9000003,0,0]
+    skill: [9000002,9000003,0,0,0,0,0]
     habitat: 達那村外 4X等. 漆黑洞窟 8X等
     level1Spawn: 五兄弟任務取得. 揚奇洛斯乘禮盒. 吉魯島(490.78)~(529.108)
     description: 藍人龍，騎寵，雖然跟藍正龍只差一個字，但藍人龍相信自己肯定比藍正龍帥
@@ -219,25 +299,28 @@ pet:
 ############################################################
   - id: 4000103
     name: 邦浦洛斯
+    enemyId: 56
     rarity: 2
     elemental:
       fire: 5
       wind: 5
     attribute:
-      critRate: 0.12
-      counterRate: 0.08
-      dodgeRate: 0.15
-      hitRate: 0.92
-      critDamageBonusRate: 0.6
-      statusResistRate: 0.25
+      poisonResist: 0
+      paralysisResist: 0
+      sleepResist: 0
+      stoneResist: 0
+      drunkResist: 0
+      confusionResist: 0
+      critical: 5
+      counter: 0
     growth:
       initNum: 27
-      lvupPointSource: "4.50"
+      lvupPointSource: 4.50
       baseVital: 25
       baseStr: 37
       baseTough: 15
       baseDex: 21
-    skill: [9000002,9000003,0,0]
+    skill: [9000002,9000003,0,0,0,0,0]
     habitat: 福爾德村上方 4X等. 漆黑洞窟 9X等
     level1Spawn: 五兄弟任務取得
     description: 為了追上黃人龍的音樂技巧，每天都努力的吹奏浦洛斯的笛，但因為很難聽常常被罵...
@@ -309,24 +392,27 @@ pet:
 ############################################################
   - id: 4000104
     name: 邦奇诺
+    enemyId: 57
     rarity: 2
     elemental:
       fire: 10
     attribute:
-      critRate: 0.12
-      counterRate: 0.08
-      dodgeRate: 0.15
-      hitRate: 0.92
-      critDamageBonusRate: 0.6
-      statusResistRate: 0.25
+      poisonResist: 0
+      paralysisResist: 0
+      sleepResist: 0
+      stoneResist: 0
+      drunkResist: 0
+      confusionResist: 0
+      critical: 5
+      counter: 0
     growth:
       initNum: 26
-      lvupPointSource: "4.50"
+      lvupPointSource: 4.50
       baseVital: 24
       baseStr: 38
       baseTough: 16
       baseDex: 20
-    skill: [9000002,9000003,0,0]
+    skill: [9000002,9000003,0,0,0,0,0]
     habitat: 達那村外 4X等. 無名洞地下2樓 8X等
     level1Spawn: 五兄弟任務取得、吉魯島(441.104)(448.105)
     description: 紅人龍，五兄弟之中攻擊力最高的一個，專門打飛不長眼，最喜歡把自己的手環拿來玩套圈圈
@@ -398,25 +484,28 @@ pet:
 ############################################################
   - id: 4000105
     name: 布鲁顿
+    enemyId: 481
     rarity: 2
     elemental:
       fire: 2
       wind: 8
     attribute:
-      critRate: 0.12
-      counterRate: 0.08
-      dodgeRate: 0.15
-      hitRate: 0.92
-      critDamageBonusRate: 0.6
-      statusResistRate: 0.25
+      poisonResist: 0
+      paralysisResist: 0
+      sleepResist: 0
+      stoneResist: 0
+      drunkResist: 0
+      confusionResist: 0
+      critical: 5
+      counter: 0
     growth:
       initNum: 25
-      lvupPointSource: "4.50"
+      lvupPointSource: 4.50
       baseVital: 25
       baseStr: 35
       baseTough: 14
       baseDex: 24
-    skill: [9000002,9000003,0,0]
+    skill: [9000002,9000003,0,0,0,0,0]
     habitat: 達那村外 4X等. 無名洞地下2樓 8X等
     level1Spawn: 五兄弟任務取得
     description: 黃人龍,最喜歡做的事情是玩音樂,雖然現在大多數人都玩吉他,BASS但黃人龍依然喜歡最豎琴
@@ -488,25 +577,28 @@ pet:
 ############################################################
   - id: 4000106
     name: 杨格斯
+    enemyId: 1660
     rarity: 2
     elemental:
       fire: 8
       wind: 2
     attribute:
-      critRate: 0.12
-      counterRate: 0.08
-      dodgeRate: 0.15
-      hitRate: 0.92
-      critDamageBonusRate: 0.6
-      statusResistRate: 0.25
+      poisonResist: 0
+      paralysisResist: 0
+      sleepResist: 0
+      stoneResist: 0
+      drunkResist: 0
+      confusionResist: 0
+      critical: 1
+      counter: 1
     growth:
       initNum: 27
-      lvupPointSource: "4.50"
+      lvupPointSource: 4.50
       baseVital: 27
       baseStr: 50
       baseTough: 18
       baseDex: 32
-    skill: [9000002,9000003,0,0]
+    skill: [9000002,9000003,0,0,0,0,0]
     habitat: 伊甸园火城火山洞窑四楼(29,14)
     level1Spawn: 黑色魅惑箱II(絕版)
     description: 黑人龍，平常最喜歡做的事情就是比中指，不解釋自看圖
