@@ -22,6 +22,7 @@ enum AssetType {
   AssetType_Decoration = 6; // 装饰物 [6000001,6999999]
   AssetType_Building = 7; // 建筑物 [7000001,7999999]
   AssetType_Plant = 8; // 植物 [8000001,8999999]
+  AssetType_Pet_Skill = 9; // 宠物技能 [9000001,9999999]
 }
 
 // 资产ID-数值范围
@@ -54,6 +55,9 @@ enum AssetIDRange {
 
   AssetIDRange_Plant_Start = 8000001; // 植物-开始
   AssetIDRange_Plant_End = 8999999; // 植物-结束
+
+  AssetIDRange_Pet_Skill_Start = 9000001; // 宠物技能-开始
+  AssetIDRange_Pet_Skill_End = 9999999; // 宠物
 }
 
 // 资产ID-记录 [1,1000000]
