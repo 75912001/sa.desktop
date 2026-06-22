@@ -2,24 +2,37 @@ class_name ConfigPet
 extends RefCounted
 
 # 统一读取 config/pet.yaml 的宠物配置.
-# 这个类使用 MiniYAML 解析 YAML, 并同时加载 skill, attribute 和 pet 三段数据.
+# 这个类使用 MiniYAML 解析 YAML, 只加载 pet 段宠物主体数据.
+# 技能定义由 ConfigPetSkill 读取 config/pet.skill.yaml, 本类只保存每个宠物的技能槽位 ID.
 # pet 段会被转换为 Entry, 调用方通过 get_by_id(id) 取得结构化字段, 不需要再手动从 Dictionary 里猜 key.
-
-# 单个宠物技能配置条目.
-# 当前业务主要读取技能槽位 ID, 但保留完整技能名称和描述, 方便后续 UI 或战斗逻辑直接按 ID 查询.
-class SkillEntry extends RefCounted:
-    var id: int
-    var name: String
-    var description: String
-
-    func show() -> String:
-        return name
 
 # 宠物某个方向和动作组合下的播放缓存.
 # key 由 Entry.direction_action_frames 使用 Vector2i(direction, action) 直接定位.
 class PlayInfo extends RefCounted:
     # Array[int] 中的 int 表示 YAML sprite 动作帧表里的 frame_id, ids 顺序就是播放顺序.
     var ids: Array[int] = []
+
+# 宠物原始属性配置.
+# 字段直接对应 config/pet.yaml 的 attribute 段, 保存 pet_growth_8_0.csv 的抗性和暴击/反击原始整数值.
+class AttributeEntry extends RefCounted:
+    var poison_resist: int
+    var paralysis_resist: int
+    var sleep_resist: int
+    var stone_resist: int
+    var drunk_resist: int
+    var confusion_resist: int
+    var critical: int
+    var counter: int
+
+# 宠物原始成长配置.
+# 字段直接对应 config/pet.yaml 的 growth 段, 用于后续按石器时代原始规则计算初始四维和升级四维.
+class GrowthEntry extends RefCounted:
+    var init_num: int
+    var lvup_point_source: float
+    var base_vital: int
+    var base_str: int
+    var base_tough: int
+    var base_dex: int
 
 # 宠物配置条目.
 # 字段名称尽量贴近 config/pet.yaml 和服务端配置管理器, 这样迁移字段或对照配置时不用在多套命名之间转换.
@@ -29,20 +42,8 @@ class Entry extends RefCounted:
     var rarity: int
     # Array[int] 固定按 Constants.ELEMENT_ORDER 的 proto 元素枚举顺序保存元素点数, 方便运行期按下标直接读取.
     var elemental: Array[int] = []
-    var hp_range: Vector2i
-    var attack_range: Vector2i
-    var defense_range: Vector2i
-    var agility_range: Vector2i
-    var crit_rate: float
-    var counter_rate: float
-    var dodge_rate: float
-    var hit_rate: float
-    var crit_damage_bonus_rate: float
-    var status_resist_rate: float
-    var growth_hp: Vector2
-    var growth_attack: Vector2
-    var growth_defense: Vector2
-    var growth_agility: Vector2
+    var attribute: AttributeEntry
+    var growth: GrowthEntry
     # Array[int] 中的 int 表示技能 ID, 0 表示空技能槽位.
     var skill_slots: Array[int] = []
     var habitat: String
@@ -63,63 +64,16 @@ class Entry extends RefCounted:
         var play_key := Vector2i(direction, action)
         return direction_action_frames[play_key] as PlayInfo
 
-# 技能 ID -> SkillEntry.
-# Dictionary[int, SkillEntry] 的 int 表示 config/pet.yaml 中 skill 段的技能 ID.
-# ConfigManager.get_shared() 首次创建共享管理器时统一加载, 后续查询复用这份内存缓存.
-var _skills_by_id: Dictionary[int, SkillEntry] = {}
-
-# 默认属性名 -> 默认值.
-# config/pet.yaml 顶层 attribute 段是默认属性配置, 单个宠物缺少对应倍率时会用这里兜底.
-var _default_attributes: Dictionary[String, Variant] = {}
-
 # 宠物 ID -> Entry.
 # Dictionary[int, Entry] 的 int 表示 config/pet.yaml 中 pet 段的宠物 ID.
 # 这是主缓存, 调用方通过 get_by_id(id) 取得结构化宠物配置.
 var _by_id: Dictionary[int, Entry] = {}
 
 # 配置管理流程的第一步.
-# 读取 YAML 并建立技能, 默认属性和宠物 ID 索引.
+# 读取 YAML 并建立宠物 ID 索引.
 # 资源帧表已由 AssetsConfig 统一加载; 本函数只解析 YAML 字段和方向, 动作到帧号序列的关系.
 func load() -> void:
     var config_data := ConfigManager.load_yaml(Constants.CONFIG_PET_PATH)
-
-    # skill 段先加载成 id -> SkillEntry.
-    # pet 段的 skill_slots 只保存技能 ID, 同一 pet.yaml 内的技能引用合法性在本次 load() 中校验.
-    var raw_skills = config_data.get("skill", [])
-    assert(raw_skills is Array, "宠物配置 skill 段不是数组: %s" % Constants.CONFIG_PET_PATH)
-
-    for skill_item in raw_skills:
-        assert(skill_item is Dictionary, "宠物技能条目须为对象: %s" % Constants.CONFIG_PET_PATH)
-        var skill_data := skill_item as Dictionary
-
-        var skill_entry := SkillEntry.new()
-        skill_entry.id = int(skill_data.get("id", 0))
-        assert(skill_entry.id > 0, "宠物技能ID非法: %d" % skill_entry.id)
-        assert(not _skills_by_id.has(skill_entry.id), "宠物技能ID重复: %d" % skill_entry.id)
-
-        skill_entry.name = str(skill_data.get("name", ""))
-        assert(not skill_entry.name.is_empty(), "宠物技能名称为空: ID:%d" % skill_entry.id)
-        skill_entry.description = str(skill_data.get("description", ""))
-        assert(not skill_entry.description.is_empty(), "宠物描述为空: ID:%d" % skill_entry.id)
-        _skills_by_id[skill_entry.id] = skill_entry
-
-    # attribute 段是默认倍率属性表.
-    # 这里只接受配置表声明的固定字段, 单个宠物 attribute 缺少倍率字段时, _parse_rate() 会从这里取默认值.
-    var raw_attributes = config_data.get("attribute", [])
-    assert(raw_attributes is Array, "宠物配置 attribute 段不是数组: %s" % Constants.CONFIG_PET_PATH)
-
-    for attribute_row in raw_attributes:
-        assert(attribute_row is Dictionary, "宠物默认属性条目须为对象: %s" % Constants.CONFIG_PET_PATH)
-        var attribute_row_data := attribute_row as Dictionary
-        assert(attribute_row_data.size() == 1, "宠物默认属性条目必须只包含一个字段: %s row:%s" % [Constants.CONFIG_PET_PATH, str(attribute_row_data)])
-        for raw_attribute_key in attribute_row_data:
-            var attribute_key := str(raw_attribute_key)
-            assert(Constants.DEFAULT_RATE_ATTRIBUTE_KEYS.has(attribute_key), "宠物默认属性字段未知: %s key:%s" % [Constants.CONFIG_PET_PATH, attribute_key])
-            assert(not _default_attributes.has(attribute_key), "宠物默认属性字段重复: %s key:%s" % [Constants.CONFIG_PET_PATH, attribute_key])
-            var attribute_value = attribute_row_data[raw_attribute_key]
-            _default_attributes[attribute_key] = _parse_rate_value(attribute_value, "宠物默认属性值非法: %s key:%s" % [Constants.CONFIG_PET_PATH, attribute_key])
-    for required_attribute_key in Constants.DEFAULT_RATE_ATTRIBUTE_KEYS:
-        assert(_default_attributes.has(required_attribute_key), "宠物默认属性字段缺失: %s key:%s" % [Constants.CONFIG_PET_PATH, required_attribute_key])
 
     # pet 段是主数据.
     # 每条记录会被转换成 Entry, 供战斗单位和动画构建器按 ID 读取.
@@ -161,42 +115,52 @@ func load() -> void:
         var attribute_value = pet_data.get("attribute", {})
         assert(attribute_value is Dictionary, "宠物 attribute 须为对象: ID:%d" % entry.id)
         var attribute_data := attribute_value as Dictionary
-        _check_pet_attribute_keys(attribute_data, entry.id)
-        # 基础属性使用整数区间, 倍率字段使用 [0, 1] 浮点值.
-        # 解析函数会在格式错误时 assert, 让配置错误在启动阶段暴露.
-        entry.hp_range = _parse_int_range(attribute_data.get("hp", null), "宠物 hp 范围非法: ID:%d" % entry.id)
-        entry.attack_range = _parse_int_range(attribute_data.get("attack", null), "宠物 attack 范围非法: ID:%d" % entry.id)
-        entry.defense_range = _parse_int_range(attribute_data.get("defense", null), "宠物 defense 范围非法: ID:%d" % entry.id)
-        entry.agility_range = _parse_int_range(attribute_data.get("agility", null), "宠物 agility 范围非法: ID:%d" % entry.id)
-        entry.crit_rate = _parse_rate(attribute_data, "critRate", "宠物 critRate 范围非法: ID:%d" % entry.id)
-        entry.counter_rate = _parse_rate(attribute_data, "counterRate", "宠物 counterRate 范围非法: ID:%d" % entry.id)
-        entry.dodge_rate = _parse_rate(attribute_data, "dodgeRate", "宠物 dodgeRate 范围非法: ID:%d" % entry.id)
-        entry.hit_rate = _parse_rate(attribute_data, "hitRate", "宠物 hitRate 范围非法: ID:%d" % entry.id)
-        entry.crit_damage_bonus_rate = _parse_rate(attribute_data, "critDamageBonusRate", "宠物 critDamageBonusRate 范围非法: ID:%d" % entry.id)
-        entry.status_resist_rate = _parse_rate(attribute_data, "statusResistRate", "宠物 statusResistRate 范围非法: ID:%d" % entry.id)
+        for raw_attribute_key in attribute_data.keys():
+            var attribute_key := str(raw_attribute_key)
+            assert(Constants.PET_ATTRIBUTE_KEYS.has(attribute_key), "宠物 attribute 字段未知: ID:%d key:%s" % [entry.id, attribute_key])
+        for required_attribute_key in Constants.PET_ATTRIBUTE_KEYS:
+            assert(attribute_data.has(required_attribute_key), "宠物 attribute 字段缺失: ID:%d key:%s" % [entry.id, required_attribute_key])
+        # attribute
+        # 抗性允许负数
+        entry.attribute = AttributeEntry.new()
+        entry.attribute.poison_resist = _parse_int(attribute_data.get("poisonResist", null), "宠物 poisonResist 非法: ID:%d" % entry.id)
+        entry.attribute.paralysis_resist = _parse_int(attribute_data.get("paralysisResist", null), "宠物 paralysisResist 非法: ID:%d" % entry.id)
+        entry.attribute.sleep_resist = _parse_int(attribute_data.get("sleepResist", null), "宠物 sleepResist 非法: ID:%d" % entry.id)
+        entry.attribute.stone_resist = _parse_int(attribute_data.get("stoneResist", null), "宠物 stoneResist 非法: ID:%d" % entry.id)
+        entry.attribute.drunk_resist = _parse_int(attribute_data.get("drunkResist", null), "宠物 drunkResist 非法: ID:%d" % entry.id)
+        entry.attribute.confusion_resist = _parse_int(attribute_data.get("confusionResist", null), "宠物 confusionResist 非法: ID:%d" % entry.id)
+        entry.attribute.critical = _parse_int(attribute_data.get("critical", null), "宠物 critical 非法: ID:%d" % entry.id)
+        entry.attribute.counter = _parse_int(attribute_data.get("counter", null), "宠物 counter 非法: ID:%d" % entry.id)
 
+        # growth
         var growth_value = pet_data.get("growth", {})
         assert(growth_value is Dictionary, "宠物 growth 须为对象: ID:%d" % entry.id)
         var growth_data := growth_value as Dictionary
-        # 成长值允许小数, 因此使用 Vector2 保存 [min, max].
-        entry.growth_hp = _parse_float_range(growth_data.get("hp", null), "宠物 growth.hp 非法: ID:%d" % entry.id)
-        entry.growth_attack = _parse_float_range(growth_data.get("attack", null), "宠物 growth.attack 非法: ID:%d" % entry.id)
-        entry.growth_defense = _parse_float_range(growth_data.get("defense", null), "宠物 growth.defense 非法: ID:%d" % entry.id)
-        entry.growth_agility = _parse_float_range(growth_data.get("agility", null), "宠物 growth.agility 非法: ID:%d" % entry.id)
+        var allowed_growth_keys := ["initNum", "lvupPointSource", "baseVital", "baseStr", "baseTough", "baseDex"]
+        for raw_growth_key in growth_data.keys():
+            var growth_key := str(raw_growth_key)
+            assert(allowed_growth_keys.has(growth_key), "宠物 growth 字段未知: ID:%d key:%s" % [entry.id, growth_key])
+        for required_growth_key in allowed_growth_keys:
+            assert(growth_data.has(required_growth_key), "宠物 growth 字段缺失: ID:%d key:%s" % [entry.id, required_growth_key])
 
+        entry.growth = GrowthEntry.new()
+        entry.growth.init_num = _parse_non_negative_int(growth_data.get("initNum", null), "宠物 growth.initNum 非法: ID:%d" % entry.id)
+        var lvup_point_source := str(growth_data.get("lvupPointSource", ""))
+        assert(lvup_point_source.is_valid_float(), "宠物 growth.lvupPointSource 非法: ID:%d value:%s" % [entry.id, lvup_point_source])
+        entry.growth.lvup_point_source = float(lvup_point_source)
+        assert(entry.growth.lvup_point_source > 0.0, "宠物 growth.lvupPointSource 必须大于0: ID:%d value:%s" % [entry.id, lvup_point_source])
+        entry.growth.base_vital = _parse_non_negative_int(growth_data.get("baseVital", null), "宠物 growth.baseVital 非法: ID:%d" % entry.id)
+        entry.growth.base_str = _parse_non_negative_int(growth_data.get("baseStr", null), "宠物 growth.baseStr 非法: ID:%d" % entry.id)
+        entry.growth.base_tough = _parse_non_negative_int(growth_data.get("baseTough", null), "宠物 growth.baseTough 非法: ID:%d" % entry.id)
+        entry.growth.base_dex = _parse_non_negative_int(growth_data.get("baseDex", null), "宠物 growth.baseDex 非法: ID:%d" % entry.id)
+
+        assert(pet_data.has("skill"), "宠物 skill 缺失: ID:%d" % entry.id)
         var skill_slots = pet_data.get("skill", [])
         assert(skill_slots is Array, "宠物 skill 须为数组: ID:%d" % entry.id)
         var skill_slot_values := skill_slots as Array
+        assert(not skill_slot_values.is_empty(), "宠物 skill 须大于 0 个槽位: ID:%d" % entry.id)
         for skill_slot in skill_slot_values:
-            entry.skill_slots.append(int(skill_slot))
-        assert(0 < entry.skill_slots.size(), "宠物 skill 须大于 0 个槽位: ID:%d" % entry.id)
-        # skill_slots 允许 0 表示空槽位.
-        # 非 0 ID 必须能在 skill 段找到, 否则后续 UI 或战斗逻辑会拿不到技能定义.
-        for slot in entry.skill_slots:
-            var skill_id := int(slot)
-            if skill_id == 0:
-                continue
-            assert(_skills_by_id.has(skill_id), "宠物引用了未定义技能: pet:%d skill:%d" % [entry.id, skill_id])
+            entry.skill_slots.append(_parse_skill_slot(skill_slot, entry.id))
 
         entry.habitat = str(pet_data.get("habitat", ""))
         assert(not entry.habitat.is_empty(), "宠物栖息地为空: ID:%d" % entry.id)
@@ -245,13 +209,22 @@ func load() -> void:
 
         _by_id[entry.id] = entry
     assert(not _by_id.is_empty(), "宠物配置中没有解析到 pet 数据: %s" % Constants.CONFIG_PET_PATH)
-    assert(not _skills_by_id.is_empty(), "宠物配置中没有解析到 skill 数据: %s" % Constants.CONFIG_PET_PATH)
 
 # 配置管理流程的第二步.
 # check() 只处理跨配置表, 跨管理器或配置到资源索引的关系.
-# 当前宠物配置的表内结构和同文件 skill 引用已在 load() 阶段校验, 宠物到帧资源索引的关系在 assemble() 挂载帧表时校验.
-func check() -> void:
-    pass
+# 宠物技能槽位引用 pet.skill.yaml, 属于跨配置文件引用, 在这里统一校验.
+func check(petskill: ConfigPetSkill) -> void:
+    assert(petskill != null, "宠物技能配置管理器不能为空.")
+    for pet_id in _by_id.keys():
+        var entry := _by_id[pet_id] as Entry
+        assert(entry != null, "宠物配置缓存类型非法: pet:%d" % int(pet_id))
+        # skill_slots 允许 0 表示空槽位.
+        # 非 0 ID 必须能在 pet.skill.yaml 找到, 否则后续 UI 或战斗逻辑会拿不到技能定义.
+        for slot in entry.skill_slots:
+            var skill_id := int(slot)
+            if skill_id == 0:
+                continue
+            assert(petskill.has_id(skill_id), "宠物引用了未定义技能: pet:%d skill:%d" % [entry.id, skill_id])
 
 # 配置管理流程的第三步.
 # 资源扫描已经由 AssetsConfig 完成, assemble() 负责把同 ID 帧索引挂到 Entry 上.
@@ -317,15 +290,6 @@ static func get_elemental_key(elemental: int) -> String:
 static func get_elemental_label(elemental: int) -> String:
     return str(Constants.ELEMENT_LABEL_BY_ENUM.get(elemental, get_elemental_key(elemental)))
 
-# 校验单个宠物 attribute 段字段名.
-# 基础区间字段必须显式配置; 倍率字段允许省略并继承顶层默认 attribute, 但不允许出现配置表之外的临时字段.
-func _check_pet_attribute_keys(attribute_data: Dictionary, pet_id: int) -> void:
-    for raw_attribute_key in attribute_data.keys():
-        var attribute_key := str(raw_attribute_key)
-        assert(Constants.PET_BASE_ATTRIBUTE_KEYS.has(attribute_key) or Constants.DEFAULT_RATE_ATTRIBUTE_KEYS.has(attribute_key), "宠物 attribute 字段未知: ID:%d key:%s" % [pet_id, attribute_key])
-    for required_attribute_key in Constants.PET_BASE_ATTRIBUTE_KEYS:
-        assert(attribute_data.has(required_attribute_key), "宠物 attribute 基础字段缺失: ID:%d key:%s" % [pet_id, required_attribute_key])
-
 func _direction_from_key(key: String) -> int:
     return int(Constants.DIRECTION_BY_KEY.get(key, GPB.AssetDirection.AssetDirection_Unknow))
 
@@ -344,75 +308,29 @@ func _pet_action_to_key(action: int) -> String:
             return str(key)
     return str(action)
 
-# 解析整数范围配置.
-# value 来自 YAML 中的 `[min, max]` 数组, err_msg 是调用方传入的字段级错误说明.
-# 返回 Vector2i(min, max), 供生命、攻击、防御和敏捷这类整数基础属性直接使用.
-func _parse_int_range(value, err_msg: String) -> Vector2i:
-    # 宠物基础属性里的 hp/attack/defense/agility 必须写成 `[min, max]`.
-    # 这里先检查 Variant 的真实类型, 配置错误必须在启动读取阶段直接暴露.
-    assert(value is Array, err_msg)
-
-    var values := value as Array
-    # 只消费前两个元素作为最小值和最大值.
-    # 不等于两个值说明配置不完整, 继续解析会产生误导性的属性范围.
-    assert(values.size() == 2, err_msg)
-
-    # YAML 解析出的数字可能是 int/float 等 Variant 数值, 统一转成 Vector2i 供后续数值逻辑直接使用.
-    return Vector2i(int(values[0]), int(values[1]))
-
-# 解析浮点范围配置.
-# value 来自 YAML 中的 `[min, max]` 数组, err_msg 是调用方传入的字段级错误说明.
-# 返回 Vector2(min, max), 供成长值这类允许小数的属性区间使用.
-func _parse_float_range(value, err_msg: String) -> Vector2:
-    # 宠物成长属性允许小数, 因此和基础属性范围分开解析为 Vector2.
-    # 这里同样要求 YAML 写成 `[min, max]`, 不接受单值或对象形式.
-    assert(value is Array, err_msg)
-
-    var values := value as Array
-    # 成长范围需要最小值和最大值; 额外元素当前不消费, 避免过早设计复杂格式.
-    assert(values.size() == 2, err_msg)
-
-    # 保留 YAML 中的小数精度, 用 Vector2 表示 `[min, max]` 成长区间.
-    return Vector2(float(values[0]), float(values[1]))
-
-# 解析宠物倍率数值.
-# 顶层默认 attribute 和单宠物倍率字段都使用相同规则: 必须是数值, 且有效范围是 [0, 1].
-func _parse_rate_value(value, err_msg: String) -> float:
+# 解析非负整数配置. growth 中的初始系数和基础四维都是原始整数配置, 负数或小数没有业务意义.
+func _parse_non_negative_int(value, err_msg: String) -> int:
     assert(value is int or value is float, "%s value:%s" % [err_msg, str(value)])
-    var rate := float(value)
-    # 超出范围通常意味着配置单位写错, 例如把 12% 写成了 12.
-    assert(rate >= 0.0 and rate <= 1.0, "%s value:%f" % [err_msg, rate])
-    return rate
+    var numeric_value := float(value)
+    var parsed_value := int(numeric_value)
+    assert(numeric_value == float(parsed_value), "%s value:%s" % [err_msg, str(value)])
+    assert(parsed_value >= 0, "%s value:%d" % [err_msg, parsed_value])
+    return parsed_value
 
-# 解析宠物倍率属性.
-# attribute_data 是单个宠物的 attribute 字典, key 是要读取的倍率字段名, err_msg 是字段级错误说明.
-# 返回范围为 [0, 1] 的 float; 单个宠物未配置时会读取顶层默认 attribute, 默认表缺失表示配置契约错误.
-func _parse_rate(attribute_data: Dictionary, key: String, err_msg: String) -> float:
-    # 单个宠物未配置某个倍率时, 使用顶层 attribute 段加载出的默认值兜底.
-    assert(_default_attributes.has(key), "宠物默认属性字段缺失: key:%s" % key)
-    var raw_rate = attribute_data.get(key, _default_attributes[key])
-    return _parse_rate_value(raw_rate, "%s key:%s" % [err_msg, key])
+# 解析原始整数配置.
+# 抗性字段可能为负数, 所以这里只要求数值是整数形态.
+func _parse_int(value, err_msg: String) -> int:
+    assert(value is int or value is float, "%s value:%s" % [err_msg, str(value)])
+    var numeric_value := float(value)
+    var parsed_value := int(numeric_value)
+    assert(numeric_value == float(parsed_value), "%s value:%s" % [err_msg, str(value)])
+    return parsed_value
 
-# 返回 config/pet.yaml 中声明过的技能 ID.
-func get_skill_ids() -> Array[int]:
-    # Array[int] 中的 int 表示技能 ID.
-    var ids: Array[int] = []
-    for skill_id in _skills_by_id.keys():
-        ids.append(int(skill_id))
-    return ids
-
-# 根据技能 ID 返回单个技能配置.
-func get_skill(skill_id: int) -> SkillEntry:
-    return _skills_by_id.get(skill_id, null) as SkillEntry
-
-# 返回默认属性表副本.
-# 调用方可以读取默认值, 但不应该通过返回值修改 ConfigPet 内部缓存.
-func get_default_attributes() -> Dictionary[String, Variant]:
-    return _default_attributes.duplicate()
-
-# 根据属性名返回默认属性值.
-func get_default_attribute(attribute_name: String, fallback = null):
-    return _default_attributes.get(attribute_name, fallback)
+# 解析宠物技能槽位. 0 表示空槽位; 非 0 值只在 load() 校验 ID 段, 是否已定义交给 check(petskill) 做跨表校验.
+func _parse_skill_slot(value, pet_id: int) -> int:
+    var skill_id := _parse_int(value, "宠物 skill 槽位非法: ID:%d" % pet_id)
+    assert(skill_id == 0 or Constants.is_pet_skill_id(skill_id), "宠物 skill 槽位ID超出范围: ID:%d skill:%d" % [pet_id, skill_id])
+    return skill_id
 
 # 返回 config/pet.yaml 中声明过的宠物 ID.
 # Godot 4 Dictionary 会保留插入顺序, 这里的 keys() 顺序与 YAML 中 pet 段的声明顺序一致.
@@ -430,7 +348,7 @@ func has_id(pet_id: int) -> bool:
     return _by_id.has(pet_id)
 
 # 根据宠物 ID 返回结构化宠物配置.
-# 例如 get_by_id(4000101).name, get_by_id(4000101).hp_range, get_by_id(4000101).skill_slots.
+# 例如 get_by_id(4000101).name, get_by_id(4000101).growth, get_by_id(4000101).skill_slots.
 func get_by_id(pet_id: int) -> Entry:
     var entry := _by_id.get(pet_id, null) as Entry
     if entry == null:
