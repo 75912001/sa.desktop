@@ -3,17 +3,20 @@ extends Control
 # GameScene 消费 GRecord 中已经由登录流程准备好的角色, 并在透明窗口内展示角色站立动画.
 # 后续真实游戏主界面可以继续挂在这个场景里, 主场景仍只负责切换内容场景.
 const CharacterFramePlayerScript := preload("res://scripts/animation/character.player.gd")
+const AutoEncounterControllerScript := preload("res://scripts/combat/auto.encounter.controller.gd")
 const CHARACTER_POSITION := Vector2(400, 360)
 
 var status_label: Label
 var info_label: Label
 var character_root: Node2D
 var character_player: CharacterFramePlayer
+var auto_encounter_controller
 
 func _ready() -> void:
     set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _build_ui()
     _show_character()
+    _start_auto_encounter_controller()
 
 # 游戏场景也不绘制全屏背景, 只绘制文本和角色动画.
 func _build_ui() -> void:
@@ -58,14 +61,14 @@ func _show_character() -> void:
     var character_entry: ConfigCharacter.Entry = GCfgMgr.character_config.get_by_id(character_id)
     assert(character_entry != null, "角色配置不存在: %d" % character_id)
 
-    info_label.text = "%s  角色:%s  HP:%s 腕力:%s 耐力:%s 敏捷:%s 体力:%s" % [
+    info_label.text = "%s  角色:%s  HP:%s 活力:%s 腕力:%s 耐力:%s 敏捷:%s" % [
         str(character_record.get_Nick()),
         character_entry.name,
         _asset_record_value(asset_records, GPB.AssetIDRecord.AssetIDRecord_HP),
-        _asset_record_value(asset_records, GPB.AssetIDRecord.AssetIDRecord_Character_AttributesStrength),
-        _asset_record_value(asset_records, GPB.AssetIDRecord.AssetIDRecord_Character_AttributesEndurance),
-        _asset_record_value(asset_records, GPB.AssetIDRecord.AssetIDRecord_Character_AttributesAgility),
-        _asset_record_value(asset_records, GPB.AssetIDRecord.AssetIDRecord_Character_AttributesStamina),
+        _asset_record_value(asset_records, GPB.AssetIDRecord.AssetIDRecord_Character_Attributes_Vitality),
+        _asset_record_value(asset_records, GPB.AssetIDRecord.AssetIDRecord_Character_Attributes_Strength),
+        _asset_record_value(asset_records, GPB.AssetIDRecord.AssetIDRecord_Character_Attributes_Toughness),
+        _asset_record_value(asset_records, GPB.AssetIDRecord.AssetIDRecord_Character_Attributes_Dexterity),
     ]
     _set_status("角色已进入游戏.")
 
@@ -94,3 +97,10 @@ func _asset_record_value(asset_records: Dictionary, key: int) -> String:
 
 func _set_status(text: String) -> void:
     status_label.text = text
+
+# 自动遇敌只在游戏页生命周期内生效.
+# 控制器挂为 GameScene 子节点后, 离开游戏页进入战斗时会随当前场景释放, 不需要额外清理计时状态.
+func _start_auto_encounter_controller() -> void:
+    auto_encounter_controller = AutoEncounterControllerScript.new()
+    auto_encounter_controller.name = "AutoEncounterController"
+    add_child(auto_encounter_controller)
