@@ -153,6 +153,10 @@ func load() -> void:
         entry.growth.base_str = _parse_non_negative_int(growth_data.get("baseStr", null), "宠物 growth.baseStr 非法: ID:%d" % entry.id)
         entry.growth.base_tough = _parse_non_negative_int(growth_data.get("baseTough", null), "宠物 growth.baseTough 非法: ID:%d" % entry.id)
         entry.growth.base_dex = _parse_non_negative_int(growth_data.get("baseDex", null), "宠物 growth.baseDex 非法: ID:%d" % entry.id)
+        assert(entry.growth.base_vital + GPetCalculator.PET_SAVED_BASE_RANDOM_MIN > 0, "宠物 growth.baseVital 加随机最小偏移后必须大于0: ID:%d baseVital:%d min:%d" % [entry.id, entry.growth.base_vital, GPetCalculator.PET_SAVED_BASE_RANDOM_MIN])
+        assert(entry.growth.base_str + GPetCalculator.PET_SAVED_BASE_RANDOM_MIN > 0, "宠物 growth.baseStr 加随机最小偏移后必须大于0: ID:%d baseStr:%d min:%d" % [entry.id, entry.growth.base_str, GPetCalculator.PET_SAVED_BASE_RANDOM_MIN])
+        assert(entry.growth.base_tough + GPetCalculator.PET_SAVED_BASE_RANDOM_MIN > 0, "宠物 growth.baseTough 加随机最小偏移后必须大于0: ID:%d baseTough:%d min:%d" % [entry.id, entry.growth.base_tough, GPetCalculator.PET_SAVED_BASE_RANDOM_MIN])
+        assert(entry.growth.base_dex + GPetCalculator.PET_SAVED_BASE_RANDOM_MIN > 0, "宠物 growth.baseDex 加随机最小偏移后必须大于0: ID:%d baseDex:%d min:%d" % [entry.id, entry.growth.base_dex, GPetCalculator.PET_SAVED_BASE_RANDOM_MIN])
 
         assert(pet_data.has("skill"), "宠物 skill 缺失: ID:%d" % entry.id)
         var skill_slots = pet_data.get("skill", [])
