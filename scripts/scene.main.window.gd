@@ -11,6 +11,7 @@ extends Node2D
 # 当前挂载在 ContentRoot 下的业务页面实例.
 # 这里只保存运行时实例, 不保存 PackedScene; clear_scene() 会把旧实例从 ContentRoot 移除并释放.
 var current_scene: Node = null
+var current_scene_path := ""
 
 # ContentRoot 是 main.window.tscn 里的业务页面挂载点.
 # @onready 会等 MainWindow 和子节点都进入场景树后再取节点, 避免脚本加载阶段访问不存在的子节点.
@@ -43,6 +44,7 @@ func clear_scene() -> void:
         current_scene.queue_free()
 
     current_scene = null
+    current_scene_path = ""
 
 # 切换窗口中的业务内容.
 # 这里先加载新场景, 加载成功后再释放旧页面; 如果路径错误, 当前页面会保留, 方便暴露错误且避免黑屏.
@@ -55,8 +57,26 @@ func switch_scene(scene_path: String) -> void:
     clear_scene()
 
     current_scene = packed_scene.instantiate()
+    current_scene_path = scene_path
     content_root.add_child(current_scene)
     _set_passive_controls_to_pass(current_scene)
+
+# 切换到战斗内容页并注入开战快照.
+# 自动遇敌已经在 GameScene 内生成 CombatBattleStart, MainWindow 只负责替换 ContentRoot 子场景,
+# 不参与敌人组选择, 单位生成或战斗规则判断.
+func switch_to_combat(battle_start) -> void:
+    var packed_scene: PackedScene = load(Constants.COMBAT_SCENE) as PackedScene
+    assert(packed_scene != null, "无法加载战斗场景: %s" % Constants.COMBAT_SCENE)
+
+    clear_scene()
+
+    current_scene = packed_scene.instantiate()
+    current_scene_path = Constants.COMBAT_SCENE
+    content_root.add_child(current_scene)
+    _set_passive_controls_to_pass(current_scene)
+
+    assert(current_scene.has_method("start_combat"), "战斗场景缺少 start_combat(battle_start) 入口.")
+    current_scene.call("start_combat", battle_start)
 
 # Node2D 的 `_draw()` 只负责绘制调试线框.
 # 这里不使用额外 UI 节点, 是为了让红边纯粹作为视觉提示, 不参与鼠标命中和输入分发.
@@ -111,7 +131,7 @@ func _process(_delta: float) -> void:
         return
 
     var final_position := window_controller.finish_drag()
-    assert(GTrayConfig.set_window_position(final_position), "保存窗口拖拽位置失败, 请检查 config/tray.yaml.")
+    assert(GTrayConfig.set_window_position(final_position), "保存窗口拖拽位置失败, 请检查 tray.yaml.")
     set_process(false)
 
 # 统一设置主窗口透明行为.
