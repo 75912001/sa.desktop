@@ -26,6 +26,12 @@ enum CombatCamp {
   CombatCamp_Defender = 1; // 被攻击方
 }
 
+// 战斗阵营内站位
+enum CombatCampPosition {
+  CombatCampPosition_Unknow = 0; // 未知参数
+  CombatCampPosition_Count = 10; // 单个阵营可用站位数量
+}
+
 // 战斗单位主键
 // CharacterUUID + PetUUID 在同一场战斗内必须唯一.
 // 角色单位使用 PetUUID=0, 玩家宠物单位使用归属角色UUID + 宠物UUID, 怪物单位使用 CharacterUUID=0 + 本场临时 PetUUID.

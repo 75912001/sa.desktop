@@ -1861,6 +1861,11 @@ enum CombatCamp {
 	CombatCamp_Defender = 1
 }
 
+enum CombatCampPosition {
+	CombatCampPosition_Unknow = 0,
+	CombatCampPosition_Count = 10
+}
+
 class CombatUnitKey:
 	extends RefCounted
 	func _init():
