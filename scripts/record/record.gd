@@ -8,6 +8,8 @@ const DEFAULT_CHARACTER_ID := 1000011
 const DEFAULT_CHARACTER_NAME := "吉米"
 const DEFAULT_HP := 10
 const DEFAULT_CHARACTER_ATTRIBUTE := 10
+const DEFAULT_CHARACTER_AVAILABLE_POINT := 0
+const DEFAULT_PET_LOYALTY := 100
 const DEFAULT_ELEMENTAL := {
     "earth": 10,
     "water": 0,
@@ -19,19 +21,11 @@ const DEFAULT_PET_RECORDS := [
         "asset_id": 4000101,
         "nick": "利則諾頓",
         "exp": 0,
-        "hp": 39,
-        "attack": 9,
-        "defense": 5,
-        "agility": 3,
     },
     {
         "asset_id": 4000102,
         "nick": "揚奇洛斯",
         "exp": 0,
-        "hp": 51,
-        "attack": 10,
-        "defense": 7,
-        "agility": 5,
     },
 ]
 
@@ -78,10 +72,11 @@ func _create_default_character_record():
         GPB.AssetIDRecord.AssetIDRecord_ElementalWater: DEFAULT_ELEMENTAL["water"],
         GPB.AssetIDRecord.AssetIDRecord_ElementalFire: DEFAULT_ELEMENTAL["fire"],
         GPB.AssetIDRecord.AssetIDRecord_ElementalWind: DEFAULT_ELEMENTAL["wind"],
-        GPB.AssetIDRecord.AssetIDRecord_Character_AttributesStrength: DEFAULT_CHARACTER_ATTRIBUTE,
-        GPB.AssetIDRecord.AssetIDRecord_Character_AttributesEndurance: DEFAULT_CHARACTER_ATTRIBUTE,
-        GPB.AssetIDRecord.AssetIDRecord_Character_AttributesAgility: DEFAULT_CHARACTER_ATTRIBUTE,
-        GPB.AssetIDRecord.AssetIDRecord_Character_AttributesStamina: DEFAULT_CHARACTER_ATTRIBUTE,
+        GPB.AssetIDRecord.AssetIDRecord_Character_Available_Point: DEFAULT_CHARACTER_AVAILABLE_POINT,
+        GPB.AssetIDRecord.AssetIDRecord_Character_Attributes_Vitality: DEFAULT_CHARACTER_ATTRIBUTE,
+        GPB.AssetIDRecord.AssetIDRecord_Character_Attributes_Strength: DEFAULT_CHARACTER_ATTRIBUTE,
+        GPB.AssetIDRecord.AssetIDRecord_Character_Attributes_Toughness: DEFAULT_CHARACTER_ATTRIBUTE,
+        GPB.AssetIDRecord.AssetIDRecord_Character_Attributes_Dexterity: DEFAULT_CHARACTER_ATTRIBUTE,
     }
     for asset_key in asset_records:
         character_record.add_AssetIDRecordMap(int(asset_key), int(asset_records[asset_key]))
@@ -101,18 +96,26 @@ func _add_default_pet_record(character_record, pet_record_data: Dictionary) -> v
     var pet_uuid: int = _next_uuid()
     var pet_asset_id: int = int(pet_record_data["asset_id"])
     var pet_nick: String = str(pet_record_data["nick"])
+    var pet_exp := int(pet_record_data["exp"])
 
     var pet_record = character_record.add_PetRecordMap(pet_uuid)
     pet_record.set_UUID(pet_uuid)
     pet_record.set_Nick(pet_nick)
 
+    var level := GCfgMgr.exp.get_level(pet_exp)
+    var generated_attributes := GPetCalculator.create_pet(pet_asset_id, level)
     var asset_records: Dictionary = {
         GPB.AssetIDRecord.AssetIDRecord_AssetID: pet_asset_id,
-        GPB.AssetIDRecord.AssetIDRecord_Exp: int(pet_record_data["exp"]),
-        GPB.AssetIDRecord.AssetIDRecord_HP: int(pet_record_data["hp"]),
-        GPB.AssetIDRecord.AssetIDRecord_Pet_AttributesAttack: int(pet_record_data["attack"]),
-        GPB.AssetIDRecord.AssetIDRecord_Pet_AttributesDefense: int(pet_record_data["defense"]),
-        GPB.AssetIDRecord.AssetIDRecord_Pet_AttributesAgility: int(pet_record_data["agility"]),
+        GPB.AssetIDRecord.AssetIDRecord_Exp: pet_exp,
+        GPB.AssetIDRecord.AssetIDRecord_Pet_Loyalty: DEFAULT_PET_LOYALTY,
+        GPB.AssetIDRecord.AssetIDRecord_Pet_SavedBase_Vitality: int(generated_attributes[GPetCalculator.KEY_SAVED_BASE_VITAL]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_SavedBase_Strength: int(generated_attributes[GPetCalculator.KEY_SAVED_BASE_STR]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_SavedBase_Toughness: int(generated_attributes[GPetCalculator.KEY_SAVED_BASE_TOUGH]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_SavedBase_Dexterity: int(generated_attributes[GPetCalculator.KEY_SAVED_BASE_DEX]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_Raw_Vitality: int(generated_attributes[GPetCalculator.KEY_RAW_VITAL]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_Raw_Strength: int(generated_attributes[GPetCalculator.KEY_RAW_STR]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_Raw_Toughness: int(generated_attributes[GPetCalculator.KEY_RAW_TOUGH]),
+        GPB.AssetIDRecord.AssetIDRecord_Pet_Raw_Dexterity: int(generated_attributes[GPetCalculator.KEY_RAW_DEX]),
     }
     for asset_key in asset_records:
         pet_record.add_AssetRecordBaseMap(int(asset_key), int(asset_records[asset_key]))
