@@ -2,8 +2,6 @@ extends Control
 
 # GameScene 消费 GRecord 中已经由登录流程准备好的角色, 并在透明窗口内展示角色站立动画.
 # 后续真实游戏主界面可以继续挂在这个场景里, 主场景仍只负责切换内容场景.
-const CharacterFramePlayerScript := preload("res://scripts/animation/character.player.gd")
-const AutoEncounterControllerScript := preload("res://scripts/combat/auto.encounter.controller.gd")
 const CHARACTER_POSITION := Vector2(400, 360)
 
 var status_label: Label
@@ -72,7 +70,7 @@ func _show_character() -> void:
     ]
     _set_status("角色已进入游戏.")
 
-    character_player = CharacterFramePlayerScript.new()
+    character_player = CharacterFramePlayer.new()
     # 游戏页按角色资源原始尺寸 100% 显示, 不额外放大.
     character_player.scale = Vector2.ONE
     character_root.add_child(character_player)
@@ -101,6 +99,6 @@ func _set_status(text: String) -> void:
 # 自动遇敌只在游戏页生命周期内生效.
 # 控制器挂为 GameScene 子节点后, 离开游戏页进入战斗时会随当前场景释放, 不需要额外清理计时状态.
 func _start_auto_encounter_controller() -> void:
-    auto_encounter_controller = AutoEncounterControllerScript.new()
+    auto_encounter_controller = AutoEncounterController.new()
     auto_encounter_controller.name = "AutoEncounterController"
     add_child(auto_encounter_controller)
