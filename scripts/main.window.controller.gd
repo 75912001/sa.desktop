@@ -110,6 +110,7 @@ func set_position(position: Vector2i) -> void:
 # 这样透明窗口即使处于隐藏流程中, 也不容易挡住桌面点击.
 func hide_window() -> void:
     drag_active = false
+    set_click_through(true)
     DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
 
 # 显示窗口并恢复基础 flags.
