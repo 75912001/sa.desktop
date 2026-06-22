@@ -2,10 +2,10 @@ class_name ConfigExp
 extends RefCounted
 
 # 统一读取 config/exp.yaml 的经验等级配置.
-# 经验表只依赖单个 YAML 文件, load() 阶段完成结构, 连续性和区间合法性校验;
+# 经验表只在 YAML 中声明每级 max, load() 阶段派生 min_exp 并完成结构, 连续性和区间合法性校验;
 # 运行期查询只消费已经排序好的 LevelEntry 数组, 不再直接访问原始 YAML 字典.
 
-const LEVEL_KEYS := ["min", "max"]
+const LEVEL_KEYS := ["max"]
 
 # 单个等级经验区间.
 # min_exp 和 max_exp 都表示角色或宠物已经累计获得的总经验, 而不是本级内经验.
@@ -27,7 +27,7 @@ var _levels: Array[LevelEntry] = []
 var _max_level := 0
 
 # 配置管理流程的第一步.
-# 读取 levels 段, 校验每个等级都有 min/max, 等级从 1 连续递增, 经验区间连续且不重叠.
+# 读取 levels 段, 校验每个等级都有 max, 等级完整覆盖协议等级范围, 再派生连续且不重叠的经验区间.
 func load() -> void:
     var config_data := ConfigManager.load_yaml(Constants.CONFIG_EXP_PATH)
     assert(config_data.has("levels"), "经验配置缺少 levels 段: %s" % Constants.CONFIG_EXP_PATH)
@@ -35,49 +35,53 @@ func load() -> void:
     assert(raw_levels is Dictionary, "经验配置 levels 段不是对象: %s" % Constants.CONFIG_EXP_PATH)
     assert(not (raw_levels as Dictionary).is_empty(), "经验配置中没有解析到 levels 数据: %s" % Constants.CONFIG_EXP_PATH)
 
+    var min_level := GPB.LevelRange.LevelRange_Min
+    var max_level := GPB.LevelRange.LevelRange_Max
     var level_numbers: Array[int] = []
     var raw_level_data_by_key := raw_levels as Dictionary
     for raw_level_key in raw_level_data_by_key.keys():
         var level := _parse_level_key(raw_level_key)
-        assert(level > 0, "经验等级非法: %s" % str(raw_level_key))
+        assert(level >= min_level and level <= max_level, "经验等级超出协议范围: level:%d range:[%d,%d]" % [level, min_level, max_level])
         assert(not _by_level.has(level), "经验等级重复: %d" % level)
 
         var raw_level_data = raw_level_data_by_key[raw_level_key]
         assert(raw_level_data is Dictionary, "经验等级条目须为对象: level:%d" % level)
         var level_data := raw_level_data as Dictionary
         _assert_known_keys(level_data, LEVEL_KEYS, "经验等级字段未知: level:%d" % level)
-        assert(level_data.has("min"), "经验等级缺少 min: level:%d" % level)
         assert(level_data.has("max"), "经验等级缺少 max: level:%d" % level)
 
         var entry := LevelEntry.new()
         entry.level = level
-        entry.min_exp = _parse_int(level_data.get("min", null), "经验等级 min 非法: level:%d" % level)
         entry.max_exp = _parse_int(level_data.get("max", null), "经验等级 max 非法: level:%d" % level)
-        assert(entry.min_exp >= 0, "经验等级 min 不能为负数: level:%d min:%d" % [level, entry.min_exp])
-        assert(entry.min_exp <= entry.max_exp, "经验等级 min 不能大于 max: level:%d min:%d max:%d" % [level, entry.min_exp, entry.max_exp])
+        assert(entry.max_exp >= 0, "经验等级 max 不能为负数: level:%d max:%d" % [level, entry.max_exp])
 
         _by_level[level] = entry
         level_numbers.append(level)
 
     level_numbers.sort()
-    assert(level_numbers[0] == 1, "经验等级必须从 1 开始: first:%d" % level_numbers[0])
+    var expected_level_count := max_level - min_level + 1
+    assert(level_numbers.size() == expected_level_count, "经验等级数量必须完整覆盖协议范围: expected:%d actual:%d" % [expected_level_count, level_numbers.size()])
+    assert(level_numbers[0] == min_level, "经验等级必须从协议最小等级开始: expected:%d actual:%d" % [min_level, level_numbers[0]])
+    assert(level_numbers[level_numbers.size() - 1] == max_level, "经验等级必须覆盖到协议最大等级: expected:%d actual:%d" % [max_level, level_numbers[level_numbers.size() - 1]])
 
-    var expected_level := 1
+    var expected_level := min_level
     var previous: LevelEntry = null
     for level in level_numbers:
         assert(level == expected_level, "经验等级必须连续: expected:%d actual:%d" % [expected_level, level])
 
         var entry: LevelEntry = _by_level[level]
         if previous == null:
-            assert(entry.min_exp == 0, "经验等级 1 的 min 必须为 0: min:%d" % entry.min_exp)
+            entry.min_exp = 0
         else:
-            assert(entry.min_exp == previous.max_exp + 1, "经验等级区间必须连续: level:%d min:%d previous_max:%d" % [level, entry.min_exp, previous.max_exp])
+            assert(entry.max_exp > previous.max_exp, "经验等级 max 必须严格递增: level:%d max:%d previous_max:%d" % [level, entry.max_exp, previous.max_exp])
+            entry.min_exp = previous.max_exp + 1
+        assert(entry.min_exp <= entry.max_exp, "经验等级区间不能反向: level:%d min:%d max:%d" % [level, entry.min_exp, entry.max_exp])
 
         _levels.append(entry)
         previous = entry
         expected_level += 1
 
-    _max_level = _levels[_levels.size() - 1].level
+    _max_level = max_level
 
 # 配置管理流程的第二步.
 # 经验配置没有跨表引用, 单表结构和区间连续性已在 load() 阶段完成.
@@ -111,6 +115,14 @@ func get_next_level_total_exp(total_exp: int) -> int:
     var next_level := level + 1
     var next_entry: LevelEntry = _by_level[next_level]
     return next_entry.min_exp
+
+# 返回指定等级的累计总经验下界.
+# 战斗快照不单独传等级, 敌方临时单位需要用这个值写入 Exp, 让展示侧能按同一规则推导等级.
+func get_level_min_exp(level: int) -> int:
+    _assert_loaded()
+    assert(_by_level.has(level), "经验等级不存在: %d" % level)
+    var entry: LevelEntry = _by_level[level]
+    return entry.min_exp
 
 # 判断当前总经验是否已经处于最高等级区间.
 func is_max_level(total_exp: int) -> bool:
