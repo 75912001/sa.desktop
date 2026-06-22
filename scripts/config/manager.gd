@@ -18,9 +18,11 @@ var _is_initializing := false
 # 这些字段分别持有 assets 加载器和具体配置管理器.
 # ConfigManager 只负责统一创建、加载、校验和组装, 具体查询逻辑仍放在各自的管理器里.
 var assets: AssetsConfig
+var petskill: ConfigPetSkill
 var pet: ConfigPet
 var character: ConfigCharacter
 var enemy_group: ConfigEnemyGroup
+var exp: ConfigExp
 
 # 共享配置总入口, 保留旧 wrapper 的访问形态, 方便业务脚本通过 GCfgMgr.config_manager 明确拿到自身.
 var config_manager: ConfigManager:
@@ -50,9 +52,11 @@ var enemy_group_config: ConfigEnemyGroup:
 # 这样节点实例化保持轻量, 真正可能失败的资源目录扫描和 YAML 读取集中在 _ensure_initialized() 的统一流程里.
 func _init() -> void:
     assets = AssetsConfig.new()
+    petskill = ConfigPetSkill.new()
     pet = ConfigPet.new()
     character = ConfigCharacter.new()
     enemy_group = ConfigEnemyGroup.new()
+    exp = ConfigExp.new()
 
 # Autoload 节点进入场景树时, 先把自身登记为共享配置实例.
 # 这样初始化过程中 ConfigPet/ConfigCharacter 再调用 ConfigManager.get_shared() 时, 会拿到同一个 GCfgMgr 节点.
@@ -77,6 +81,7 @@ static func get_shared() -> ConfigManager:
 
 # 确保配置只初始化一次.
 # 内部顺序固定为 assets load -> config load -> config check -> assemble.
+# ConfigPet.check(petskill) 在 check 阶段校验宠物技能槽位引用; 此时各配置已完成 load().
 func _ensure_initialized() -> void:
     if _is_initialized or _is_initializing:
         return
@@ -88,22 +93,28 @@ func _ensure_initialized() -> void:
     assets.load()
 
     # 第二阶段读取配置源文件并建立各自的基础缓存.
-    # ConfigPet 和 ConfigCharacter 的 load() 都只解析 YAML, 后续在 assemble() 中挂载帧表.
+    # ConfigPetSkill, ConfigPet 和 ConfigCharacter 的 load() 都只解析 YAML, 后续在 check()/assemble() 中校验跨表关系和挂载帧表.
+    petskill.load()
     pet.load()
     character.load()
     enemy_group.load()
+    exp.load()
 
     # 第三阶段做校验.
     # 这里资源索引和所有配置都已经完成 load, 可以做跨配置和配置到资源的检查.
-    pet.check()
+    petskill.check()
+    pet.check(petskill)
     character.check()
     enemy_group.check(pet)
+    exp.check()
 
     # 第四阶段做组装.
-    # 这里适合生成派生缓存或跨配置引用, 例如宠物技能槽位会引用同 ID 技能 Entry, 宠物和角色会挂载同 ID 帧表引用.
+    # 这里适合生成派生缓存或跨配置引用, 例如宠物和角色会挂载同 ID 帧表引用.
+    petskill.assemble()
     pet.assemble()
     character.assemble()
     enemy_group.assemble()
+    exp.assemble()
 
     _is_initialized = true
     _is_initializing = false
