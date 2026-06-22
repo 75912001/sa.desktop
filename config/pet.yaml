@@ -57,10 +57,7 @@
 #   raw_dex = int(init_factor * final_base_dex)
 #
 # 生成真实宠物实例时, 运行方必须保存实例字段:
-#   saved_base_vital
-#   saved_base_str
-#   saved_base_tough
-#   saved_base_dex
+#   saved_base_vital, saved_base_str, saved_base_tough, saved_base_dex
 #   初始 raw 四维
 #       raw_vital, raw_str, raw_tough, raw_dex
 
