@@ -15,21 +15,64 @@ const Proto := preload("res://proto/sa.pb.gd")
 # 这些 YAML 是运行时配置源数据, 必须保持标准空格缩进; 读取阶段不修正 tab 缩进.
 # `res://` 表示 Godot 项目根目录, 所以下面的路径对应项目内的 config 目录.
 const CONFIG_PET_PATH := "res://config/pet.yaml"
+const CONFIG_PET_SKILL_PATH := "res://config/pet.skill.yaml"
 const CONFIG_CHARACTER_PATH := "res://config/character.yaml"
 const CONFIG_ENEMY_GROUP_PATH := "res://config/enemy.group.yaml"
+const CONFIG_EXP_PATH := "res://config/exp.yaml"
 
-# 主窗口业务页面路径由 GWindow 和 GTray 复用.
-# 页面切换只替换 Window/ContentRoot 下的子场景, 不调用全局 change_scene_to_file().
+# 配置文件分为两类:
+# - `config/tray.yaml.tpl` 是入库模板, 保存完整注释, 字段契约和首启配置.
+# - `tray.yaml` 是本地运行期文件, 首次缺失时从模板复制生成, 后续由程序整体覆盖写回.
+#
+# 读取阶段不使用代码默认值补齐字段; 必填字段缺失或类型错误会 assert, 让配置问题在启动阶段暴露.
+# 写回阶段会覆盖整个 `tray.yaml`, 因此运行期文件不承担说明文档职责; 需要看注释时查看模板.
+const CONFIG_TRAY_PATH := "res://tray.yaml"
+const CONFIG_TRAY_TEMPLATE_PATH := "res://config/tray.yaml.tpl"
+
+# 菜单字号允许被配置, 但必须限制到可用范围内.
+# 这里 clamp 的目标是避免手工配置出极小或极大的菜单, 不是用默认值吞掉错误字段.
+const TRAY_MENU_MIN_FONT_SIZE := 8
+const TRAY_MENU_MAX_FONT_SIZE := 32
+
+# 托盘主题颜色字段契约.
+# 这些 key 必须在 `menu.colors` 中完整出现; 读取时按该顺序生成强类型颜色字典.
+# 配置中额外颜色字段会被忽略, 避免未消费字段误导后续维护者以为已经生效.
+const TRAY_COLOR_KEYS: Array[String] = [
+    "panel",
+    "border",
+    "text",
+    "hover_text",
+    "highlight",
+    "pressed",
+    "disabled_text",
+]
+
+# 缩放和透明度的边界统一放在这里, 确保托盘输入、配置恢复和窗口控制器调用走同一套约束.
+const WINDOW_MIN_SCALE := 0.1
+const WINDOW_MAX_SCALE := 1.0
+const WINDOW_MIN_OPACITY := 0.1
+const WINDOW_MAX_OPACITY := 1.0
+
+# 主窗口业务页面路径由 MainWindow 和 GTray 复用.
+# 页面切换只替换 MainWindow/ContentRoot 下的子场景, 不调用全局 change_scene_to_file().
 const GAME_SCENE := "res://scenes/game.tscn"
-const BATTLE_SCENE := "res://scenes/battle.tscn"
+const COMBAT_SCENE := "res://scenes/combat.tscn"
 
-# 当前主窗口作为游戏和战斗共用的窗口, 统一使用 800x600.
+# 当前主窗口统一使用 800x600.
 const WINDOW_SIZE := Vector2i(800, 600)
 
 # 调试红边只用于测试透明窗口边界.
-# 它画在 Window 根节点上, 不创建 Control 节点, 因此不会拦截游戏页的鼠标输入.
+# 它画在 MainWindow 根节点上, 不创建 Control 节点, 因此不会拦截游戏页的鼠标输入.
 const DEBUG_BORDER_COLOR := Color(1, 0, 0, 1)
 const DEBUG_BORDER_WIDTH := 2.0
+const WINDOW_GUIDE_LINE_COLOR := Color(0.1, 0.85, 1.0, 0.55)
+const WINDOW_GUIDE_LINE_WIDTH := 1.0
+const WINDOW_GUIDE_POINT_COLOR := Color(1.0, 0.95, 0.2, 0.95)
+const WINDOW_GUIDE_TEXT_COLOR := Color(1.0, 1.0, 1.0, 0.95)
+const WINDOW_GUIDE_POINT_RADIUS := 3.0
+const WINDOW_GUIDE_TEXT_FONT_SIZE := 12
+const WINDOW_GUIDE_TEXT_OFFSET := Vector2(6.0, 14.0)
+const WINDOW_GUIDE_TEXT_EDGE_PADDING := 4.0
 
 # 角色元素字段顺序由 GRecord 生成运行期记录时复用.
 const ELEMENT_KEYS := ["earth", "water", "fire", "wind"]
@@ -61,13 +104,9 @@ const ELEMENT_LABEL_BY_ENUM := {
     Proto.AssetElemental.AssetElemental_Wind: "风",
 }
 
-# pet.yaml 顶层 attribute 段只允许这些默认倍率字段.
-# 字段名直接对应配置表和服务端协议命名, 不接受大小写变体或临时别名, 避免配置拼写错误被静默吞掉.
-const DEFAULT_RATE_ATTRIBUTE_KEYS := ["critRate", "counterRate", "dodgeRate", "hitRate", "critDamageBonusRate", "statusResistRate"]
-
-# 单个宠物 attribute 段允许的基础区间字段.
-# 倍率字段复用 DEFAULT_RATE_ATTRIBUTE_KEYS, 缺失时从顶层默认 attribute 段继承.
-const PET_BASE_ATTRIBUTE_KEYS := ["hp", "attack", "defense", "agility"]
+# pet.yaml 单宠物 attribute 段只允许这些来自 pet_growth_8_0.csv 的原始字段.
+# 字段名直接对应配置源命名, 不接受大小写变体或临时别名, 避免配置拼写错误被静默吞掉.
+const PET_ATTRIBUTE_KEYS := ["poisonResist", "paralysisResist", "sleepResist", "stoneResist", "drunkResist", "confusionResist", "critical", "counter"]
 
 # 宠物动作帧表中的动作 key 到运行期枚举的映射.
 const PET_ACTION_BY_KEY := {
@@ -193,20 +232,3 @@ const WEAPON_TYPE_BY_KEY := {
     "spear": Proto.CharacterWeaponType.CharacterWeaponType_Spear,
     "stick": Proto.CharacterWeaponType.CharacterWeaponType_Stick,
 }
-
-static func is_pet_id(id: int) -> bool:
-    return id >= Proto.AssetIDRange.AssetIDRange_Pet_Start and id <= Proto.AssetIDRange.AssetIDRange_Pet_End
-
-static func is_character_id(id: int) -> bool:
-    return id >= Proto.AssetIDRange.AssetIDRange_Character_Start and id <= Proto.AssetIDRange.AssetIDRange_Character_End
-
-# 根据运行期资源 ID 返回对应图集路径.
-# 调用方只传宠物或角色 ID, 资源类型由配置表约定的 ID 范围推导.
-static func get_atlas_path(id: int) -> String:
-    if is_pet_id(id):
-        return "%s/%d.png" % [ASSET_PET_DIR, id]
-    if is_character_id(id):
-        return "%s/%d.png" % [ASSET_CHARACTER_DIR, id]
-
-    assert(false, "资源ID不属于宠物或角色范围: %d" % id)
-    return ""
