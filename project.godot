@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="sa.desktop"
-run/main_scene="uid://c3j6jto41tvy7"
+run/main_scene="uid://bq4wq8j4y0gk1"
 config/features=PackedStringArray("4.6", "Forward Plus")
 boot_splash/bg_color=Color(0, 0, 0, 0)
 boot_splash/show_image=false
@@ -20,8 +20,15 @@ config/icon="res://icon.svg"
 [autoload]
 
 YAML="*uid://ihqfb76y0nfd"
-GameData="*res://scripts/global/game_data.gd"
-RoleRecord="*res://scripts/global/role.record.gd"
+GPB="*res://proto/sa.pb.gd"
+GPetCalculator="*res://scripts/common/pet.attribute.calculator.gd"
+GCfgMgr="*res://scripts/config/manager.gd"
+GTrayConfig="*res://scripts/tray/config.gd"
+GRecord="*res://scripts/record/record.gd"
+GCombatFormation="*res://scripts/combat/combat.formation.gd"
+GMainWindowGuideDrawer="*res://scripts/scene.main.window.guides.gd"
+GMainWindow="*res://scripts/main.window.global.gd"
+GTray="*res://scripts/tray/tray.gd"
 
 [display]
 
@@ -37,7 +44,7 @@ window/per_pixel_transparency/enabled=true
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/miniyaml/plugin.cfg")
+enabled=PackedStringArray("res://addons/miniyaml/plugin.cfg", "res://addons/godobuf/plugin.cfg")
 
 [physics]
 

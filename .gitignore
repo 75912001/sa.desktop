@@ -10,3 +10,6 @@
 /sa.exe
 /sa.console.exe
 /sa.pck
+
+# Local runtime tray state generated from config/tray.yaml.tpl.
+/tray.yaml
