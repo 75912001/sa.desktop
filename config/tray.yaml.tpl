@@ -1,23 +1,14 @@
 # 托盘菜单-配置模板
-# 首次启动时, 程序会把本文件复制为 config/tray.yaml.
-# config/tray.yaml 是本地运行期文件, 后续会被程序整体覆盖写回.
+# 首次启动时, 程序会把本文件复制为 tray.yaml.
+# tray.yaml 是本地运行期文件, 后续会被程序整体覆盖写回.
 # 需要查看字段说明和默认结构时, 以本模板为准.
 
 window:
   # 主窗口左上角屏幕坐标.
-  # 首次启动使用模板值; 拖拽或重置窗口位置后会写回 config/tray.yaml.
+  # 首次启动使用模板值; 拖拽或重置窗口位置后会写回 tray.yaml.
   position:
     x: 0
     y: 0
-  # 主窗口缩放比例, 0.1 表示 10%, 1.0 表示 100% 即 800x600.
-  scale: 1.0
-  # 内容透明度, 0.1 表示 10%, 1.0 表示 100%.
-  opacity: 1.0
-  # 是否启用鼠标穿透; 用户通过托盘勾选后会写回.
-  click_through: false
-  # 启动时是否默认隐藏主窗口.
-  # true 表示程序启动后只保留托盘入口, 主窗口会最小化隐藏.
-  hidden: true
   # 调试用红色边框开关.
   # true 表示启动时默认显示 2px 红边, 用来确认透明主窗口的实际范围.
   debug_border: false
@@ -41,3 +32,47 @@ menu:
     pressed: "#1247A3FF"
     # 禁用菜单项文字颜色.
     disabled_text: "#949BA8FF"
+
+setting:
+  # 设置窗口保存托盘 `设置...` 打开的复古辅助面板 UI 状态.
+  # setting.window.scale/opacity, login.hide_stoneage 和 login.click_through 同时控制主窗口行为.
+  # setting.combat.auto_encounter 会在 game.tscn 内启动本地自动遇敌计时; 其他字段不会启动真实业务场景或调用外部自动化.
+  mode: "主控"
+  window:
+    # 主窗口缩放比例, 0.1 表示 10%, 1.0 表示 100% 即 800x600.
+    scale: 1.0
+    # 内容透明度, 0.1 表示 10%, 1.0 表示 100%.
+    opacity: 1.0
+  login:
+    auto_login: false
+    mute_sound: true
+    # 勾选 `隐藏石器` 后立即最小化隐藏主窗口, 取消勾选后恢复显示.
+    hide_stoneage: false
+    # 是否启用鼠标穿透; 用户通过设置窗口勾选后会写回.
+    click_through: false
+  general:
+    show_floor: true
+  combat:
+    auto_combat: false
+    quick_combat: false
+    # 开启后, 游戏页每 5 秒生成一次本地 CombatBattleStart 并切入战斗页.
+    auto_encounter: false
+    detail_info: false
+    auto_capture: false
+    escape_on_encounter: false
+    auto_escape: false
+    lock_pet: false
+    specified_attack: false
+    specified_escape: false
+    switch_pet: "1:无"
+    ground_lock: false
+    show_exp: true
+  status:
+    current_coord: ""
+    cash: ""
+    game_time: ""
+  bottom:
+    team: false
+    duel: false
+    trade: false
+    card: false
