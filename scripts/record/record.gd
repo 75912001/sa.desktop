@@ -19,12 +19,12 @@ const DEFAULT_ELEMENTAL := {
 const DEFAULT_PET_RECORDS := [
     {
         "asset_id": 4000101,
-        "nick": "利則諾頓",
+        "nick": "利则诺顿",
         "exp": 0,
     },
     {
         "asset_id": 4000102,
-        "nick": "揚奇洛斯",
+        "nick": "扬奇洛斯",
         "exp": 0,
     },
 ]
@@ -47,14 +47,14 @@ func create_record() -> void:
 # 校验写死在 GRecord 内的默认账号数据.
 # 这些数据不是外部输入, 但它们决定登录后能否进入游戏页; 启动链路应在错误数据进入协议记录前直接暴露问题.
 func _validate_default_record_data() -> void:
-    assert(Constants.is_character_id(DEFAULT_CHARACTER_ID), "账号记录角色资源 ID 非法: %d" % DEFAULT_CHARACTER_ID)
+    assert(Share.is_character_id(DEFAULT_CHARACTER_ID), "账号记录角色资源 ID 非法: %d" % DEFAULT_CHARACTER_ID)
     assert(not DEFAULT_CHARACTER_NAME.is_empty(), "账号记录 Nick 不能为空.")
 
     for raw_pet_record_data in DEFAULT_PET_RECORDS:
         var pet_record_data: Dictionary = raw_pet_record_data as Dictionary
         var pet_asset_id: int = int(pet_record_data["asset_id"])
         var pet_nick: String = str(pet_record_data["nick"])
-        assert(Constants.is_pet_id(pet_asset_id), "宠物记录资源 ID 非法: %d" % pet_asset_id)
+        assert(Share.is_pet_id(pet_asset_id), "宠物记录资源 ID 非法: %d" % pet_asset_id)
         assert(not pet_nick.is_empty(), "宠物记录 Nick 不能为空.")
 
 # 创建默认角色并写入角色基础协议字段.
