@@ -78,8 +78,8 @@ func switch_to_combat(battle_start) -> void:
     assert(current_scene.has_method("start_combat"), "战斗场景缺少 start_combat(battle_start) 入口.")
     current_scene.call("start_combat", battle_start)
 
-# Node2D 的 `_draw()` 只负责绘制调试线框.
-# 这里不使用额外 UI 节点, 是为了让红边纯粹作为视觉提示, 不参与鼠标命中和输入分发.
+# Node2D 的 `_draw()` 只负责绘制窗口级调试线框和辅助标注.
+# 这里不使用额外 UI 节点, 是为了让调试图形纯粹作为视觉提示, 不参与鼠标命中和输入分发.
 func _draw() -> void:
     if not GTrayConfig.get_window_debug_border_enabled():
         return
@@ -92,6 +92,7 @@ func _draw() -> void:
         window_size - Vector2(Constants.DEBUG_BORDER_WIDTH, Constants.DEBUG_BORDER_WIDTH)
     )
     draw_rect(border_rect, Constants.DEBUG_BORDER_COLOR, false, Constants.DEBUG_BORDER_WIDTH)
+    GMainWindowGuideDrawer.draw_guides(self, window_size)
 
 # `_unhandled_input()` 只接收没有被业务 UI 消费的输入事件.
 # 例如 game 里的按钮和输入框会先拿到鼠标事件; 如果它们没有处理, 才会轮到 MainWindow.
