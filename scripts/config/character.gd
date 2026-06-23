@@ -62,7 +62,7 @@ func load() -> void:
         # ID 是角色配置和 assets/character 资源文件名的连接点.
         # 非法或重复 ID 会让后续资源校验失去确定目标, 因此读取后立刻拦截.
         var character_id := int(raw_character_dict.get("id", 0))
-        assert(Constants.is_character_id(character_id), "角色ID超出范围: %d" % character_id)
+        assert(Share.is_character_id(character_id), "角色ID超出范围: %d" % character_id)
         assert(not _by_id.has(character_id), "角色ID重复: %d" % character_id)
 
         var character_name := str(raw_character_dict.get("name", ""))
@@ -215,7 +215,7 @@ func get_by_id(character_id: int) -> Entry:
     if entry == null:
         return null
     if entry.atlas == null: # 懒加载-角色图集
-        var atlas_path := Constants.get_atlas_path(int(character_id))
+        var atlas_path := Share.get_atlas_path(int(character_id))
         var atlas_load_started_at := Time.get_ticks_msec()
         entry.atlas = ResourceLoader.load(atlas_path) as Texture2D
         var atlas_load_elapsed_ms := Time.get_ticks_msec() - atlas_load_started_at

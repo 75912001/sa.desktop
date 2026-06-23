@@ -33,7 +33,7 @@ func load() -> void:
 
         var entry := Entry.new()
         entry.id = int(skill_data.get("id", 0))
-        assert(Constants.is_pet_skill_id(entry.id), "宠物技能ID超出范围: %d" % entry.id)
+        assert(Share.is_pet_skill_id(entry.id), "宠物技能ID超出范围: %d" % entry.id)
         assert(not _by_id.has(entry.id), "宠物技能ID重复: %d" % entry.id)
 
         entry.name = str(skill_data.get("name", ""))

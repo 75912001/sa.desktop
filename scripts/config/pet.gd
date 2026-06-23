@@ -87,7 +87,7 @@ func load() -> void:
 
         var entry := Entry.new()
         entry.id = int(pet_data.get("id", 0))
-        assert(Constants.is_pet_id(entry.id), "宠物ID超出范围: %d" % entry.id)
+        assert(Share.is_pet_id(entry.id), "宠物ID超出范围: %d" % entry.id)
 
         assert(not _by_id.has(entry.id), "宠物ID重复: %d" % entry.id)
 
@@ -333,7 +333,7 @@ func _parse_int(value, err_msg: String) -> int:
 # 解析宠物技能槽位. 0 表示空槽位; 非 0 值只在 load() 校验 ID 段, 是否已定义交给 check(petskill) 做跨表校验.
 func _parse_skill_slot(value, pet_id: int) -> int:
     var skill_id := _parse_int(value, "宠物 skill 槽位非法: ID:%d" % pet_id)
-    assert(skill_id == 0 or Constants.is_pet_skill_id(skill_id), "宠物 skill 槽位ID超出范围: ID:%d skill:%d" % [pet_id, skill_id])
+    assert(skill_id == 0 or Share.is_pet_skill_id(skill_id), "宠物 skill 槽位ID超出范围: ID:%d skill:%d" % [pet_id, skill_id])
     return skill_id
 
 # 返回 config/pet.yaml 中声明过的宠物 ID.
@@ -358,7 +358,7 @@ func get_by_id(pet_id: int) -> Entry:
     if entry == null:
         return null
     if entry.atlas == null:
-        var atlas_path := Constants.get_atlas_path(int(pet_id))
+        var atlas_path := Share.get_atlas_path(int(pet_id))
         var atlas_load_started_at := Time.get_ticks_msec()
         entry.atlas = ResourceLoader.load(atlas_path) as Texture2D
         var atlas_load_elapsed_ms := Time.get_ticks_msec() - atlas_load_started_at
